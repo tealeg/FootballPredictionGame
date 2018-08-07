@@ -10,7 +10,8 @@ import (
 )
 
 type AccountDB struct {
-	db *bolt.DB
+	db         *bolt.DB
+	bucketName []byte
 }
 
 func NewAccountDB(name string) (*AccountDB, error) {
@@ -19,10 +20,11 @@ func NewAccountDB(name string) (*AccountDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	var b *bolt.Bucket
+	bname := []byte("account")
 	err = db.Update(func(tx *bolt.Tx) error {
 		var err error
-		b, err = tx.CreateBucket([]byte("account"))
+
+		_, err = tx.CreateBucket(bname)
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
 		}
@@ -33,7 +35,8 @@ func NewAccountDB(name string) (*AccountDB, error) {
 	}
 
 	adb := &AccountDB{
-		db: db,
+		db:         db,
+		bucketName: bname,
 	}
 	return adb, nil
 }
@@ -41,12 +44,12 @@ func NewAccountDB(name string) (*AccountDB, error) {
 // Create stores a Account in the account DB
 func (adb *AccountDB) Create(account Account) error {
 	return adb.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("account"))
+		b := tx.Bucket(adb.bucketName)
 		buf, err := json.Marshal(account)
 		if err != nil {
 			return err
 		}
-		key, err := adb.Key(account)
+		key, err := adb.Key(account.Name)
 		if err != nil {
 			return err
 		}
@@ -54,10 +57,32 @@ func (adb *AccountDB) Create(account Account) error {
 	})
 }
 
-// Generate a key for the account bucket
-func (adb *AccountDB) Key(account Account) ([]byte, error) {
-	if account.Name == "" {
+// Get retrieves a user Account with the provided name
+func (adb *AccountDB) Get(name string) (*Account, error) {
+	acc := &Account{}
+	err := adb.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(adb.bucketName)
+		key, err := adb.Key(name)
+		if err != nil {
+			return err
+		}
+		v := b.Get(key)
+		if len(v) == 0 {
+			return errors.New("Zero bytes returned for key")
+		}
+		err = json.Unmarshal(v, acc)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return acc, err
+}
+
+// Generate a key from an account name
+func (adb *AccountDB) Key(name string) ([]byte, error) {
+	if name == "" {
 		return nil, errors.New("No Name set for account")
 	}
-	return []byte(account.Name), nil
+	return []byte(name), nil
 }

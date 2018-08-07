@@ -36,7 +36,7 @@ func TestCreate(t *testing.T) {
 	}
 	adb.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("account"))
-		key, _ := adb.Key(acc)
+		key, _ := adb.Key(acc.Name)
 		v := b.Get(key)
 		acc2 := &Account{}
 		err := json.Unmarshal(v, acc2)
@@ -50,4 +50,22 @@ func TestCreate(t *testing.T) {
 		}
 		return nil
 	})
+}
+
+func TestGet(t *testing.T) {
+	adb, err := setUpAccountDB()
+	defer tearDownAccountDB(adb)
+
+	acc := Account{Name: "tealeg"}
+	err = adb.Create(acc)
+	if err != nil {
+		t.Fatalf("unexpected error in Create: %s", err.Error())
+	}
+	acc2, err := adb.Get("tealeg")
+	if err != nil {
+		t.Fatalf("unexpected in Get: %s", err.Error())
+	}
+	if acc2.Name != acc.Name {
+		t.Errorf("Expected acc2.Name == %q, but got %q", acc.Name, acc2.Name)
+	}
 }
