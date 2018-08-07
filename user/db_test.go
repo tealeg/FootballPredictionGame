@@ -85,3 +85,45 @@ func TestGet(t *testing.T) {
 		t.Errorf("Expected acc2.Name == %q, but got %q", acc.Name, acc2.Name)
 	}
 }
+
+func TestAdminUserExists(t *testing.T) {
+	adb, err := setUpAccountDB()
+	defer tearDownAccountDB(adb)
+
+	exists, err := adb.AdminUserExists()
+	if err != nil {
+		t.Fatalf("unexpected error in AdminUserExists: %s", err.Error())
+	}
+	if exists {
+		t.Fatal("expecte AdminUserExists == false, but got true")
+	}
+
+	normalAcc := Account{Name: "nic", IsAdmin: false}
+	err = adb.Create(normalAcc)
+	if err != nil {
+		t.Fatalf("unexpected error in Create: %s", err.Error())
+	}
+
+	exists, err = adb.AdminUserExists()
+	if err != nil {
+		t.Fatalf("unexpected error in AdminUserExists: %s", err.Error())
+	}
+	if exists {
+		t.Fatal("expecte AdminUserExists == false, but got true")
+	}
+
+	adminAcc := Account{Name: "geoff", IsAdmin: true}
+	err = adb.Create(adminAcc)
+	if err != nil {
+		t.Fatalf("unexpected error in Create: %s", err.Error())
+	}
+
+	exists, err = adb.AdminUserExists()
+	if err != nil {
+		t.Fatalf("unexpected error in AdminUserExists: %s", err.Error())
+	}
+	if !exists {
+		t.Fatal("expecte AdminUserExists == true, but got false")
+	}
+
+}

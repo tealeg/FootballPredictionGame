@@ -83,6 +83,32 @@ func (adb *AccountDB) Get(name string) (*Account, error) {
 	return acc, err
 }
 
+//
+func (adb *AccountDB) AdminUserExists() (bool, error) {
+	found := false
+	err := adb.db.View(func(tx *bolt.Tx) error {
+		// Assume bucket exists and has keys
+		b := tx.Bucket(adb.bucketName)
+
+		c := b.Cursor()
+
+		acc := &Account{}
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			err := json.Unmarshal(v, acc)
+			if err != nil {
+				return err
+			}
+			if acc.IsAdmin {
+				found = true
+				return nil
+			}
+		}
+
+		return nil
+	})
+	return found, err
+}
+
 // Generate a key from an account name
 func (adb *AccountDB) Key(name string) ([]byte, error) {
 	if name == "" {
