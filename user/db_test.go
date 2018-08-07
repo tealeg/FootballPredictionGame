@@ -52,6 +52,22 @@ func TestCreate(t *testing.T) {
 	})
 }
 
+func TestCreateDuplicate(t *testing.T) {
+	adb, err := setUpAccountDB()
+	defer tearDownAccountDB(adb)
+
+	acc := Account{Name: "tealeg"}
+	err = adb.Create(acc)
+	if err != nil {
+		t.Fatalf("unexpected error in Create: %s", err.Error())
+	}
+	err = adb.Create(acc)
+	if err == nil {
+		t.Fatalf("expected error in Create, but none occurred")
+	}
+
+}
+
 func TestGet(t *testing.T) {
 	adb, err := setUpAccountDB()
 	defer tearDownAccountDB(adb)

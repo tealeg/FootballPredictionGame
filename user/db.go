@@ -53,6 +53,10 @@ func (adb *AccountDB) Create(account Account) error {
 		if err != nil {
 			return err
 		}
+		v := b.Get(key)
+		if len(v) != 0 {
+			return errors.New("Duplicate key")
+		}
 		return b.Put(key, buf)
 	})
 }
