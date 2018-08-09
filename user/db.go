@@ -24,7 +24,7 @@ func NewAccountDB(name string) (*AccountDB, error) {
 	err = db.Update(func(tx *bolt.Tx) error {
 		var err error
 
-		_, err = tx.CreateBucket(bname)
+		_, err = tx.CreateBucketIfNotExists(bname)
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
 		}
@@ -81,6 +81,22 @@ func (adb *AccountDB) Get(name string) (*Account, error) {
 		return nil
 	})
 	return acc, err
+}
+
+func (adb *AccountDB) Update(name string, account Account) error {
+	return adb.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(adb.bucketName)
+		buf, err := json.Marshal(account)
+		if err != nil {
+			return err
+		}
+		key, err := adb.Key(account.Name)
+		if err != nil {
+			return err
+		}
+		return b.Put(key, buf)
+	})
+
 }
 
 //

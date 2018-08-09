@@ -86,6 +86,35 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func TestUpdate(t *testing.T) {
+	adb, err := setUpAccountDB()
+	defer tearDownAccountDB(adb)
+
+	acc1 := Account{Name: "tealeg", Forename: "Geoff"}
+	err = adb.Create(acc1)
+	if err != nil {
+		t.Fatalf("unexpected error in Create: %s", err.Error())
+	}
+
+	acc2 := Account{Name: "tealeg", Forename: "Gott"}
+	err = adb.Update("tealeg", acc2)
+	if err != nil {
+		t.Fatalf("unexpected error in Create: %s", err.Error())
+	}
+
+	acc3, err := adb.Get("tealeg")
+	if err != nil {
+		t.Fatalf("unexpected in Get: %s", err.Error())
+	}
+	if acc3.Forename == acc1.Forename {
+		t.Errorf("Expected acc3.Forename != %q, but got %q", acc1.Forename, acc1.Forename)
+	}
+	if acc3.Forename != acc2.Forename {
+		t.Errorf("Expected acc3.Forename == %q, but got %q", acc2.Forename, acc3.Forename)
+	}
+
+}
+
 func TestAdminUserExists(t *testing.T) {
 	adb, err := setUpAccountDB()
 	defer tearDownAccountDB(adb)
