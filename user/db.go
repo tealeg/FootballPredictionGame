@@ -132,3 +132,7 @@ func (adb *AccountDB) Key(name string) ([]byte, error) {
 	}
 	return []byte(name), nil
 }
+
+func (adb *AccountDB) Close() error {
+	return adb.db.Close()
+}
