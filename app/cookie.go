@@ -1,11 +1,10 @@
 package app
 
 import (
-	"fmt"
-	"log"
 	"net/http"
 	"time"
 
+	"github.com/labstack/echo"
 	"github.com/tealeg/FPG2/user"
 )
 
@@ -13,48 +12,51 @@ const UserCookieName = "FPG2UserName"
 
 //
 func GetAccountCookie(adb *user.AccountDB, acc user.Account) (*http.Cookie, error) {
+	cookie := new(http.Cookie)
+	cookie.Name = UserCookieName
+	cookie.Value = acc.Name
 	expiration := time.Now().Add(20 * time.Minute)
 	acc.SessionExpires = expiration
+	cookie.Expires = expiration
+
 	err := adb.Update(acc.Name, acc)
 	if err != nil {
 		return nil, err
 	}
-	return &http.Cookie{Name: UserCookieName, Value: acc.Name, Expires: expiration, RawExpires: expiration.Format(time.UnixDate), Domain: "www.teale.de"}, nil
+	return cookie, nil
 }
 
-func checkAccountCookie(adb *user.AccountDB, r *http.Request, checkTime time.Time) bool {
-	c, err := r.Cookie(UserCookieName)
+func checkAccountCookie(e *echo.Echo, adb *user.AccountDB, c echo.Context, checkTime time.Time) bool {
+	cookie, err := c.Cookie(UserCookieName)
 	if err != nil {
-		log.Println(err.Error())
+		e.Logger.Error(err.Error())
 		return false
 	}
-	log.Println(fmt.Sprintf("Got cookie: %+v", c))
-	acc, err := adb.Get(c.Value)
+	e.Logger.Infof("Got cookie: %+v", cookie)
+	acc, err := adb.Get(cookie.Value)
 	if err != nil {
-		log.Println(err.Error())
+		e.Logger.Error(err.Error())
 		return false
 	}
-	log.Println(fmt.Sprintf("Got account: %+v", acc))
-	if acc.SessionExpires.Format(time.UnixDate) != c.RawExpires {
-		log.Println("date mismatch")
-		return false
-	}
+	e.Logger.Infof("Got account: %+v", acc)
+	// if acc.SessionExpires.Format(time.UnixDate) != c.RawExpires {
+	// 	log.Println("date mismatch")
+	// 	return false
+	// }
 	if acc.SessionExpires.UnixNano() < checkTime.UnixNano() {
-		log.Println("session expired")
+		e.Logger.Warn("session expired")
 		return false
 	}
 	return true
 }
 
-func SecurePage(adb *user.AccountDB, h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !checkAccountCookie(adb, r, time.Now()) {
-			log.Println("Cookie check failed")
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
+func SecurePage(e *echo.Echo, adb *user.AccountDB, h echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if !checkAccountCookie(e, adb, c, time.Now()) {
+			e.Logger.Warn("Cookie check failed")
+			return c.Redirect(http.StatusSeeOther, "/login?failed=timeout")
 		}
-		log.Println("Cookie check succeeded")
-		h(w, r)
-		return
+		e.Logger.Info("Cookie check succeeded")
+		return h(c)
 	}
 }

@@ -3,15 +3,15 @@ package app
 import (
 	"crypto/sha1"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
+	"github.com/labstack/echo"
 	"github.com/tealeg/FPG2/user"
 )
 
-func firstUserHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(`<!DOCTYPE html>
+func firstUserHandler(c echo.Context) error {
+	return c.HTML(http.StatusOK, `<!DOCTYPE html>
 
 <html>
   <head>
@@ -31,11 +31,11 @@ func firstUserHandler(w http.ResponseWriter, r *http.Request) {
     </form>
   </body>
 </html>
-`))
+`)
 }
 
-func newUserHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(`<!DOCTYPE html>
+func newUserHandler(c echo.Context) error {
+	return c.HTML(http.StatusOK, `<!DOCTYPE html>
 
 <html>
   <head>
@@ -55,11 +55,11 @@ func newUserHandler(w http.ResponseWriter, r *http.Request) {
     </form>
   </body>
 </html>
-`))
+`)
 }
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	_, failed := r.URL.Query()["failed"]
+func loginHandler(c echo.Context) error {
+	failed := c.QueryParam("failed")
 
 	page := `<!DOCTYPE html>
 <html>
@@ -67,9 +67,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
     <meta charset="UTF-8">
   </head>
   <body>`
-	if failed {
+	switch failed {
+	case "true":
 		page += `<span class="error">Login Failed</span>`
+	case "timeout":
+		page += `<span class="error">Session expired</span>`
 	}
+
 	page += `<form action="/authenticate" method="POST">
       <fieldset>
         <legend>Please login</legend>
@@ -82,76 +86,63 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
   </body>
 </html>
 `
-	w.Write([]byte(page))
+	return c.HTML(http.StatusOK, page)
 
 }
 
-func makeWelcomeHandler(adb *user.AccountDB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func makeWelcomeHandler(adb *user.AccountDB) echo.HandlerFunc {
+	return func(c echo.Context) error {
 		exists, err := adb.AdminUserExists()
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		if exists {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
+			return c.Redirect(http.StatusSeeOther, "/login")
 		}
-		http.Redirect(w, r, "/firstuser", http.StatusSeeOther)
-		return
+		return c.Redirect(http.StatusSeeOther, "/firstuser")
 	}
 }
 
-func makeCreateUserHandler(adb *user.AccountDB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm()
-
-		isAdmin := strings.ToLower(r.FormValue("isadmin")) == "yes"
+func makeCreateUserHandler(adb *user.AccountDB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		isAdmin := strings.ToLower(c.FormValue("isadmin")) == "yes"
 		acc := user.Account{
-			Forename:       r.FormValue("forename"),
-			Surname:        r.FormValue("surname"),
-			Name:           r.FormValue("username"),
-			HashedPassword: HashPassword(r.FormValue("password")),
+			Forename:       c.FormValue("forename"),
+			Surname:        c.FormValue("surname"),
+			Name:           c.FormValue("username"),
+			HashedPassword: HashPassword(c.FormValue("password")),
 			IsAdmin:        isAdmin,
 		}
 		err := adb.Create(acc)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
+		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 }
 
-func makeAuthenticationHandler(adb *user.AccountDB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm()
-		account, err := adb.Get(r.FormValue("username"))
+func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		account, err := adb.Get(c.FormValue("username"))
 		if err != nil {
-			log.Println("Couldn't get account: " + err.Error())
-			w.Write([]byte(err.Error()))
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			e.Logger.Warn("Couldn't get account: " + err.Error())
+			return c.Redirect(http.StatusSeeOther, "/login?failed=true")
 		}
 
-		p := HashPassword(r.FormValue("password"))
+		p := HashPassword(c.FormValue("password"))
 		if p != account.HashedPassword {
-			log.Println("bad password")
-			http.Redirect(w, r, "/login?failed=true", http.StatusSeeOther)
-			return
+			e.Logger.Warn("bad password")
+			return c.Redirect(http.StatusSeeOther, "/login?failed=true")
 		}
 		cookie, err := GetAccountCookie(adb, *account)
 		if err != nil {
-			log.Println("Couldn't get cookie: " + err.Error())
-			w.Write([]byte(err.Error()))
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			e.Logger.Warn("Couldn't get cookie: " + err.Error())
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
-		log.Println("Set Cookie")
-		http.SetCookie(w, cookie)
+		e.Logger.Info("Set Cookie")
+		c.SetCookie(cookie)
 
-		target := r.URL.Query().Get("target")
+		target := c.QueryParam("target")
 		if target == "" {
 			target = "/frontpage"
 		}
@@ -168,9 +159,8 @@ func makeAuthenticationHandler(adb *user.AccountDB) http.HandlerFunc {
 		</html>
 		`, target)
 
-		log.Println("Redirect to " + target)
-		w.Write([]byte(page))
-		return
+		e.Logger.Info("Redirect to " + target)
+		return c.HTML(http.StatusOK, page)
 	}
 }
 
@@ -178,12 +168,11 @@ func HashPassword(password string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(password)))
 }
 
-func setupUserHandlers(adb *user.AccountDB) {
-	http.HandleFunc("/", makeWelcomeHandler(adb))
-	http.HandleFunc("/firstuser", firstUserHandler)
-	http.HandleFunc("/newuser", newUserHandler)
-	http.HandleFunc("/createuser", makeCreateUserHandler(adb))
-	http.HandleFunc("/login", loginHandler)
-	http.HandleFunc("/authenticate", makeAuthenticationHandler(adb))
-
+func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
+	e.GET("/", makeWelcomeHandler(adb))
+	e.GET("/firstuser", firstUserHandler)
+	e.GET("/newuser", newUserHandler)
+	e.POST("/createuser", makeCreateUserHandler(adb))
+	e.GET("/login", loginHandler)
+	e.POST("/authenticate", makeAuthenticationHandler(e, adb))
 }

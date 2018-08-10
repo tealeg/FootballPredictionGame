@@ -3,11 +3,12 @@ package app
 import (
 	"net/http"
 
+	"github.com/labstack/echo"
 	"github.com/tealeg/FPG2/user"
 )
 
-func makeFrontPageHandler(adb *user.AccountDB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func makeFrontPageHandler(adb *user.AccountDB) echo.HandlerFunc {
+	return func(c echo.Context) error {
 		page := `<!DOCTYPE html>
 <html>
   <head>
@@ -18,11 +19,10 @@ func makeFrontPageHandler(adb *user.AccountDB) http.HandlerFunc {
   </body>
 </html>
 `
-		w.Write([]byte(page))
-
+		return c.HTML(http.StatusOK, page)
 	}
 }
 
-func setupFrontPageHandler(adb *user.AccountDB) {
-	http.HandleFunc("/frontpage", SecurePage(adb, makeFrontPageHandler(adb)))
+func setupFrontPageHandler(e *echo.Echo, adb *user.AccountDB) {
+	e.GET("/frontpage", SecurePage(e, adb, makeFrontPageHandler(adb)))
 }
