@@ -2,7 +2,6 @@ package competition
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -30,25 +29,6 @@ func NewDB(name string) (*DB, error) {
 		return nil
 	})
 	return &DB{db: db}, nil
-}
-
-func (db *DB) GetAllLeagues() ([]League, error) {
-	leagues := make([]League, 0)
-	err := db.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(leagueBN)
-		err := b.ForEach(func(k, v []byte) error {
-			l := League{}
-			err := json.Unmarshal(v, &l)
-			if err != nil {
-				return err
-			}
-			leagues = append(leagues, l)
-			return nil
-		})
-		return err
-
-	})
-	return leagues, err
 }
 
 func (db *DB) Close() error {
