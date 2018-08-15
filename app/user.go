@@ -97,7 +97,7 @@ func makeWelcomeHandler(adb *user.AccountDB) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		if exists {
-			return c.Redirect(http.StatusSeeOther, "/login")
+			return c.Redirect(http.StatusSeeOther, "/frontpage")
 		}
 		return c.Redirect(http.StatusSeeOther, "/firstuser")
 	}

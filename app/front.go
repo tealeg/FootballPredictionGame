@@ -25,4 +25,6 @@ func makeFrontPageHandler(adb *user.AccountDB) echo.HandlerFunc {
 
 func setupFrontPageHandler(e *echo.Echo, adb *user.AccountDB) {
 	e.GET("/frontpage", SecurePage(e, adb, makeFrontPageHandler(adb)))
+func setupFrontPageHandler(e *echo.Echo, adb *user.AccountDB, cdb *competition.DB) {
+	e.GET("/frontpage", SecurePage(e, adb, makeFrontPageHandler(adb, cdb)))
 }
