@@ -13,7 +13,12 @@ type DB struct {
 }
 
 var (
-	leagueBN []byte = []byte("league")
+	leagueBN []byte   = []byte("league")
+	seasonBN []byte   = []byte("season")
+	BNs      [][]byte = [][]byte{
+		leagueBN,
+		seasonBN,
+	}
 )
 
 func NewDB(name string) (*DB, error) {
@@ -22,8 +27,11 @@ func NewDB(name string) (*DB, error) {
 		return nil, err
 	}
 	err = db.Update(func(tx *bolt.Tx) error {
-		if _, err := tx.CreateBucketIfNotExists(leagueBN); err != nil {
-			return err
+		for _, bn := range BNs {
+			if _, err := tx.CreateBucketIfNotExists(bn); err != nil {
+				return err
+			}
+
 		}
 
 		return nil
