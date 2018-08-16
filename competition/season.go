@@ -1,6 +1,7 @@
 package competition
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -15,11 +16,11 @@ type Season struct {
 
 // makeSeasonId returns a compound identifier that can be used to
 // uniquely identify a season, and supports prefix scanning in bbolt.
-func makeSeasonId(leagueId int64, startYear, endYear uint16) string {
+func makeSeasonId(leagueId uint64, startYear, endYear uint16) string {
 	return fmt.Sprintf("%04d-%d-%d", leagueId, startYear, endYear)
 }
 
-func NewSeason(leagueID int64, startYear, endYear uint16) *Season {
+func NewSeason(leagueID uint64, startYear, endYear uint16) *Season {
 	return &Season{
 		ID:        makeSeasonId(leagueID, startYear, endYear),
 		StartYear: startYear,
@@ -44,7 +45,6 @@ func (db *DB) CreateSeason(s *Season) (string, error) {
 	return s.ID, nil
 }
 
-//
 func (db *DB) GetSeason(id string) (*Season, error) {
 	s := &Season{}
 
@@ -58,4 +58,25 @@ func (db *DB) GetSeason(id string) (*Season, error) {
 		return nil
 	})
 	return s, err
+}
+
+func (db *DB) GetAllLeagueSeasons(leagueID uint64) ([]Season, error) {
+	seasons := make([]Season, 0)
+
+	err := db.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(seasonBN)
+		c := b.Cursor()
+		prefix := []byte(fmt.Sprintf("%04d", leagueID))
+		for k, v := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = c.Next() {
+			s := &Season{}
+			err := json.Unmarshal(v, s)
+			if err != nil {
+				return err
+			}
+			seasons = append(seasons, *s)
+		}
+
+		return nil
+	})
+	return seasons, err
 }

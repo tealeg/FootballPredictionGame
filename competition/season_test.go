@@ -61,3 +61,45 @@ func TestCreateAndGetSeason(t *testing.T) {
 	}
 
 }
+
+func TestGetAllLeagueSesasons(t *testing.T) {
+	db := setUpDB(t)
+	defer tearDownDB(db)
+
+	l := &League{Name: "English Premier League"}
+	_, err := db.CreateLeague(l)
+	if err != nil {
+		t.Fatalf("unexpected error in CreateLeague: %s", err.Error())
+	}
+
+	l2 := &League{Name: "English Championship"}
+	_, err = db.CreateLeague(l2)
+	if err != nil {
+		t.Fatalf("unexpected error in CreateLeague: %s", err.Error())
+	}
+
+	for start := uint16(2016); start < 2020; start++ {
+		s := NewSeason(l.ID, start, start+1)
+		_, err := db.CreateSeason(s)
+		if err != nil {
+			t.Fatalf("unexpected error in CreateSeason: %s", err.Error())
+		}
+		s2 := NewSeason(l2.ID, start, start+1)
+		_, err = db.CreateSeason(s2)
+		if err != nil {
+			t.Fatalf("unexpected error in CreateSeason: %s", err.Error())
+		}
+
+	}
+
+	// We should only get EPL seasons, not championship
+	seasons, err := db.GetAllLeagueSeasons(l.ID)
+	if err != nil {
+		t.Fatalf("unexpected error in GetAllLeagueSeasons: %s", err.Error())
+	}
+	sCount := len(seasons)
+	if sCount != 4 {
+		t.Errorf("Expected 4 seasons, but got %d", sCount)
+	}
+
+}
