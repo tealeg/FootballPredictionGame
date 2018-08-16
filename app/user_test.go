@@ -7,10 +7,10 @@ import (
 )
 
 func setUpAccountDB() (*user.AccountDB, error) {
-	return user.NewAccountDB("test")
+	return user.NewAccountDB("test-account")
 }
 
 func tearDownAccountDB(adb *user.AccountDB) {
 	adb.Close()
-	os.Remove("test.db")
+	os.Remove("test-account.db")
 }
