@@ -13,7 +13,6 @@ import (
 func makeNewLeagueHandler(e *echo.Echo, cdb *competition.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		name := c.FormValue("name")
-		// redirect := c.QueryParam("redirect")
 		if name == "" {
 			return c.String(http.StatusBadRequest, fmt.Sprintf("Invalid league name: %q", name))
 		}
