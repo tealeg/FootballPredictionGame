@@ -12,5 +12,6 @@ func Serve(port string, adb *user.AccountDB, cdb *competition.DB) {
 	setupUserHandlers(e, adb)
 	setupFrontPageHandler(e, adb, cdb)
 	setupLeagueHandlers(e, adb, cdb)
+	setupSeasonHandlers(e, adb, cdb)
 	e.Logger.Fatal(e.Start(port))
 }
