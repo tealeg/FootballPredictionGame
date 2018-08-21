@@ -10,30 +10,6 @@ import (
 	"github.com/tealeg/FootballPredictionGame/user"
 )
 
-func firstUserHandler(c echo.Context) error {
-	return c.HTML(http.StatusOK, `<!DOCTYPE html>
-
-<html>
-  <head>
-    <meta charset="UTF-8">
-  </head>
-  <body>
-    <form action="/createuser" method="POST">
-      <fieldset>
-        <legend>No admin user yet exists, please enter the admin users details here.</legend>
-        Forename: <input type="text" name="forename"/><br />
-        Surname: <input type="text" name="surname"/><br />
-        Username: <input type="text" name="username"/><br />
-        Password: <input type="password" name="password"/><br />
-        <input type="hidden" name="isadmin" value="yes" />
-        <input type="submit" value="add user"/>
-      </fieldset>
-    </form>
-  </body>
-</html>
-`)
-}
-
 func newUserHandler(c echo.Context) error {
 	return c.HTML(http.StatusOK, `<!DOCTYPE html>
 
@@ -97,9 +73,9 @@ func makeWelcomeHandler(adb *user.AccountDB) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		if exists {
-			return c.Redirect(http.StatusSeeOther, "/frontpage")
+			return c.JSON(http.StatusOK, true)
 		}
-		return c.Redirect(http.StatusSeeOther, "/firstuser")
+		return c.JSON(http.StatusOK, false)
 	}
 }
 
@@ -169,8 +145,8 @@ func HashPassword(password string) string {
 }
 
 func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
-	e.GET("/", makeWelcomeHandler(adb))
-	e.GET("/firstuser", firstUserHandler)
+	e.GET("/user/admin/exists", makeWelcomeHandler(adb))
+	// e.GET("/firstuser", firstUserHandler)
 	e.GET("/newuser", newUserHandler)
 	e.POST("/createuser", makeCreateUserHandler(adb))
 	e.GET("/login", loginHandler)

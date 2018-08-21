@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <script type="text/javascript" href="/js/user.js">
+  </head>
+  <body>
+    <form id="user-form" v-on:submit="createUser">
+      <fieldset>
+        <legend>No admin user yet exists, please enter the admin users details here.</legend>
+        Forename: <input type="text" name="forename"/><br />
+        Surname: <input type="text" name="surname"/><br />
+        Username: <input type="text" name="username"/><br />
+        Password: <input type="password" name="password"/><br />
+        <input type="hidden" name="isadmin" value="true" />
+        <input type="submit" value="Create account"/>
+      </fieldset>
+    </form>
+  </body>
+</html>
