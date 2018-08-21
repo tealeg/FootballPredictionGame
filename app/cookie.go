@@ -39,15 +39,19 @@ func checkAccountCookie(e *echo.Echo, adb *user.AccountDB, c echo.Context, check
 		return false
 	}
 	e.Logger.Infof("Got account: %+v", acc)
-	// if acc.SessionExpires.Format(time.UnixDate) != c.RawExpires {
-	// 	log.Println("date mismatch")
-	// 	return false
-	// }
 	if acc.SessionExpires.UnixNano() < checkTime.UnixNano() {
 		e.Logger.Warn("session expired")
 		return false
 	}
 	return true
+}
+
+func GetUserAccount(c echo.Context, adb *user.AccountDB) (*user.Account, error) {
+	cookie, err := c.Cookie(UserCookieName)
+	if err != nil {
+		return nil, err
+	}
+	return adb.Get(cookie.Value)
 }
 
 func SecurePage(e *echo.Echo, adb *user.AccountDB, h echo.HandlerFunc) echo.HandlerFunc {
