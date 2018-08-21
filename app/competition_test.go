@@ -3,7 +3,7 @@ package app
 import (
 	"os"
 
-	"github.com/tealeg/FPG2/competition"
+	"github.com/tealeg/FootballPredictionGame/competition"
 )
 
 func setUpCompetitionDB() (*competition.DB, error) {

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/labstack/echo"
-	"github.com/tealeg/FPG2/user"
+	"github.com/tealeg/FootballPredictionGame/user"
 )
 
 func firstUserHandler(c echo.Context) error {

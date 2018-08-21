@@ -6,8 +6,8 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo"
-	"github.com/tealeg/FPG2/competition"
-	"github.com/tealeg/FPG2/user"
+	"github.com/tealeg/FootballPredictionGame/competition"
+	"github.com/tealeg/FootballPredictionGame/user"
 )
 
 func makeNewSeasonHandler(e *echo.Echo, cdb *competition.DB) echo.HandlerFunc {

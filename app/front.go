@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo"
-	"github.com/tealeg/FPG2/competition"
-	"github.com/tealeg/FPG2/user"
+	"github.com/tealeg/FootballPredictionGame/competition"
+	"github.com/tealeg/FootballPredictionGame/user"
 )
 
 func makeFrontPageHandler(adb *user.AccountDB, cdb *competition.DB) echo.HandlerFunc {

@@ -3,7 +3,7 @@ package app
 import (
 	"os"
 
-	"github.com/tealeg/FPG2/user"
+	"github.com/tealeg/FootballPredictionGame/user"
 )
 
 func setUpAccountDB() (*user.AccountDB, error) {

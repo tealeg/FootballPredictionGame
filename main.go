@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
-	"github.com/tealeg/FPG2/app"
-	"github.com/tealeg/FPG2/competition"
-	"github.com/tealeg/FPG2/user"
+	"github.com/tealeg/FootballPredictionGame/app"
+	"github.com/tealeg/FootballPredictionGame/competition"
+	"github.com/tealeg/FootballPredictionGame/user"
 )
 
 func main() {

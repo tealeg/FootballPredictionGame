@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo"
-	"github.com/tealeg/FPG2/user"
+	"github.com/tealeg/FootballPredictionGame/user"
 )
 
 const UserCookieName = "FPG2UserName"
