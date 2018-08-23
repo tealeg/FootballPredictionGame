@@ -145,8 +145,7 @@ func HashPassword(password string) string {
 }
 
 func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
-	e.GET("/user/admin/exists", makeWelcomeHandler(adb))
-	// e.GET("/firstuser", firstUserHandler)
+	e.GET("/user/admin/exists.json", makeWelcomeHandler(adb))
 	e.GET("/newuser", newUserHandler)
 	e.POST("/createuser", makeCreateUserHandler(adb))
 	e.GET("/login", loginHandler)
