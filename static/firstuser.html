@@ -3,19 +3,48 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <script type="text/javascript" href="/js/user.js">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/main.css"></link>
+    <link rel="stylesheet" type="text/css" href="/css/grid/simple-grid.css"></link>
   </head>
   <body>
     <form id="user-form" v-on:submit="createUser">
       <fieldset>
-        <legend>No admin user yet exists, please enter the admin users details here.</legend>
-        Forename: <input type="text" name="forename"/><br />
-        Surname: <input type="text" name="surname"/><br />
-        Username: <input type="text" name="username"/><br />
-        Password: <input type="password" name="password"/><br />
-        <input type="hidden" name="isadmin" value="true" />
-        <input type="submit" value="Create account"/>
+	<div class="container">
+	  <div class="row">
+	    <div class="col-12">
+              <legend>No admin user yet exists, please enter the admin users details here.</legend>
+	    </div>
+	  </div>
+	  <div class="row">
+	    <div class="col-3"><label for="forename">Forename</label></div>
+	    <div class="col-9"><input type="text" name="forename"/></div>
+	  </div>
+	  <div class="row">
+	    <div class="col-3"><label for="surname">Surname</label></div>
+	    <div class="col-9"><input type="text" name="surname"/></div>
+	  </div>
+	  <div class="row">
+	    <div class="col-3"><label for="username">Username</label></div>
+	    <div class="col-9"><input type="text" name="username"/></div>
+	  </div>
+	  <div class="row">
+	    <div class="col-3"><label for="password">Password</label></div>
+	    <div class="col-9"><input type="password" name="password"/></div>
+	  </div>
+	  <div class="row">
+	    <div class="col-9">
+	      <!-- Though it can't be seen, I'll embed it in this cell because it makes the code look nice ;-) -->
+              <input type="hidden" name="isadmin" value="true" />
+	    </div>
+	    <div class="col-3">
+              <input type="submit" value="Create account"/>
+	    </div>
+	  </div>
+	</div>
       </fieldset>
     </form>
+    <script src="/js/user.js"></script>
   </body>
 </html>
