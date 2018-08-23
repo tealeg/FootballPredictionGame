@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/labstack/echo"
 	"github.com/tealeg/FootballPredictionGame/user"
@@ -79,21 +78,27 @@ func makeWelcomeHandler(adb *user.AccountDB) echo.HandlerFunc {
 	}
 }
 
+type createUserResponse struct {
+	Errors []string
+}
+
 func makeCreateUserHandler(adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		isAdmin := strings.ToLower(c.FormValue("isadmin")) == "yes"
-		acc := user.Account{
-			Forename:       c.FormValue("forename"),
-			Surname:        c.FormValue("surname"),
-			Name:           c.FormValue("username"),
-			HashedPassword: HashPassword(c.FormValue("password")),
-			IsAdmin:        isAdmin,
-		}
-		err := adb.Create(acc)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
-		return c.Redirect(http.StatusSeeOther, "/login")
+		r := createUserResponse{Errors: []string{fmt.Sprintf("isAdmin = %q", c.FormValue("isadmin"))}}
+		return c.JSON(http.StatusOK, r)
+		// isAdmin := strings.ToLower(c.FormValue("isadmin")) == "yes"
+		// acc := user.Account{
+		// 	Forename:       c.FormValue("forename"),
+		// 	Surname:        c.FormValue("surname"),
+		// 	Name:           c.FormValue("username"),
+		// 	HashedPassword: HashPassword(c.FormValue("password")),
+		// 	IsAdmin:        isAdmin,
+		// }
+		// err := adb.Create(acc)
+		// if err != nil {
+		// 	return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		// }
+		// return c.Redirect(http.StatusSeeOther, "/login")
 	}
 }
 
@@ -146,8 +151,8 @@ func HashPassword(password string) string {
 
 func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
 	e.GET("/user/admin/exists.json", makeWelcomeHandler(adb))
-	e.GET("/newuser", newUserHandler)
-	e.POST("/createuser", makeCreateUserHandler(adb))
+	// e.GET("/newuser", newUserHandler)
+	e.POST("/user/new.json", makeCreateUserHandler(adb))
 	e.GET("/login", loginHandler)
 	e.POST("/authenticate", makeAuthenticationHandler(e, adb))
 }

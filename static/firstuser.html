@@ -6,12 +6,19 @@
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/css/main.css"></link>
-    <link rel="stylesheet" type="text/css" href="/css/grid/simple-grid.css"></link>
+    <link rel="stylesheet" type="text/css" href="/css/grid/simple-grid.min.css"></link>
   </head>
   <body>
-    <form id="user-form" v-on:submit="createUser">
+    <form id="user-form" @submit="createUser(true)">
       <fieldset>
 	<div class="container">
+	  <div class="row" v-if="errors.length">
+	    <div class="col-12">
+	      <ul>
+		<li v-for="error in errors">{{ error }}</li>
+	      </ul>
+	    </div>
+	  </div>
 	  <div class="row">
 	    <div class="col-12">
               <legend>No admin user yet exists, please enter the admin users details here.</legend>
@@ -19,24 +26,23 @@
 	  </div>
 	  <div class="row">
 	    <div class="col-3"><label for="forename">Forename</label></div>
-	    <div class="col-9"><input type="text" name="forename"/></div>
+	    <div class="col-9"><input type="text" name="forename" v-model="forename"/></div>
 	  </div>
 	  <div class="row">
 	    <div class="col-3"><label for="surname">Surname</label></div>
-	    <div class="col-9"><input type="text" name="surname"/></div>
+	    <div class="col-9"><input type="text" name="surname" v-model="surname"/></div>
 	  </div>
 	  <div class="row">
 	    <div class="col-3"><label for="username">Username</label></div>
-	    <div class="col-9"><input type="text" name="username"/></div>
+	    <div class="col-9"><input type="text" name="username" v-model="username"/></div>
 	  </div>
 	  <div class="row">
 	    <div class="col-3"><label for="password">Password</label></div>
-	    <div class="col-9"><input type="password" name="password"/></div>
+	    <div class="col-9"><input type="password" name="password" v-model="password"/></div>
 	  </div>
 	  <div class="row">
 	    <div class="col-9">
-	      <!-- Though it can't be seen, I'll embed it in this cell because it makes the code look nice ;-) -->
-              <input type="hidden" name="isadmin" value="true" />
+              <input type="hidden" name="isadmin" v-model="isadmin" value="true" />
 	    </div>
 	    <div class="col-3">
               <input type="submit" value="Create account"/>
