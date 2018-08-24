@@ -1,4 +1,4 @@
-var app = new Vue({
+var UserForm = new Vue({
     el: "#user-form",
     data: {
 	errors: [],
@@ -6,34 +6,36 @@ var app = new Vue({
 	surname: null,
 	username: null,
 	password: null,
-	isadmin: null,
     },
     methods: {
 	createUser: function(isAdmin) {
-	    this.isadmin = isAdmin
-	    return function (e) {
-		let self = this
-		this.errors = []
-		axios.post('/user/new.json', {
-	    	    forename: this.forename,
-	    	    surname: this.surname,
-	    	    username: this.username,
-	    	    password: this.password,
-	    	    isadmin: this.isadmin,
-		}).then(
-	    	    function(response) {
-	    		self.errors = response.data.Errors
-	    	    }
-		).catch(
-	    	    function(error) {
-	    		self.errors.push(error.message)
-	    	    }
-		    
-		)
-		e.preventDefault()
+	    let self = this
+	    this.errors = []
+	    axios.post('/user/new.json', {
+	    	forename: this.forename,
+	    	surname: this.surname,
+	    	username: this.username,
+	    	password: this.password,
+	    	isadmin: isAdmin,
+	    }).then(
+	    	function(response) {
+	    	    self.errors = response.data.Errors
+	    	}
+	    ).catch(
+	    	function(error) {
+	    	    self.errors.push(error.message)
+	    	}
+	    )
 
-	    }
+	},
+	createAdminUser: function(e) {
+	    e.preventDefault()
+	    return this.createUser(true)
+	},
+	createNormalUser: function(e) {
+	    e.preventDefault()
+	    return this.createUser(false)
 	}
-	
     }
+	
 })

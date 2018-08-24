@@ -2,6 +2,7 @@ package app
 
 import (
 	"crypto/sha1"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -82,23 +83,66 @@ type createUserResponse struct {
 	Errors []string
 }
 
+func (cur *createUserResponse) AddError(err error) {
+	cur.Errors = append(cur.Errors, err.Error())
+}
+
+type createUserRequest struct {
+	Forename string `json:"forename"`
+	Surname  string `json:"surname"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	IsAdmin  bool   `json:"isadmin"`
+}
+
+func (cur *createUserRequest) CreateAccount(adb *user.AccountDB) error {
+	acc := user.Account{
+		Forename:       cur.Forename,
+		Surname:        cur.Surname,
+		Name:           cur.Username,
+		HashedPassword: HashPassword(cur.Password),
+		IsAdmin:        cur.IsAdmin,
+	}
+	return adb.Create(acc)
+}
+
+func (cur *createUserRequest) Validate(r *createUserResponse) error {
+	var err error
+	if cur.Forename == "" {
+		err = errors.New("Forename is empty")
+		r.AddError(err)
+	}
+	if cur.Surname == "" {
+		err = errors.New("Surname is empty")
+		r.AddError(err)
+	}
+	if cur.Username == "" {
+		err = errors.New("Username is empty")
+		r.AddError(err)
+	}
+	if cur.Password == "" {
+		err = errors.New("Password is empty")
+		r.AddError(err)
+	}
+	return err
+}
+
 func makeCreateUserHandler(adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		r := createUserResponse{Errors: []string{fmt.Sprintf("isAdmin = %q", c.FormValue("isadmin"))}}
+		cur := new(createUserRequest)
+		if err := c.Bind(cur); err != nil {
+			return err
+		}
+		r := createUserResponse{}
+		err := cur.Validate(&r)
+		if err != nil {
+			return c.JSON(http.StatusOK, r)
+		}
+		err = cur.CreateAccount(adb)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
 		return c.JSON(http.StatusOK, r)
-		// isAdmin := strings.ToLower(c.FormValue("isadmin")) == "yes"
-		// acc := user.Account{
-		// 	Forename:       c.FormValue("forename"),
-		// 	Surname:        c.FormValue("surname"),
-		// 	Name:           c.FormValue("username"),
-		// 	HashedPassword: HashPassword(c.FormValue("password")),
-		// 	IsAdmin:        isAdmin,
-		// }
-		// err := adb.Create(acc)
-		// if err != nil {
-		// 	return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		// }
-		// return c.Redirect(http.StatusSeeOther, "/login")
 	}
 }
 

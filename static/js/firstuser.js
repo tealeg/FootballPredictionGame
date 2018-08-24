@@ -7,7 +7,16 @@ new Vue({
     created: function(){ this.fetchData()},
     methods: {
 	fetchData: function () {
-	    axios.get('/user/admin/exists.json').then(response => this.adminUserExists = response)
+	    let self = this
+	    axios.get('/user/admin/exists.json').then(
+		function(response) {
+		    self.adminUserExists = response.data
+		}
+	    ).catch(
+		function(error) {
+		    console.log(error)
+		}
+	    )
 	},
 	handleAdminExists: function() {
 	    if (this.adminUserExists == true) {
