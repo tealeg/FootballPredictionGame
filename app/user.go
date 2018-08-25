@@ -79,12 +79,16 @@ func makeWelcomeHandler(adb *user.AccountDB) echo.HandlerFunc {
 	}
 }
 
-type createUserResponse struct {
+type simpleResponse struct {
 	Errors []string
 }
 
-func (cur *createUserResponse) AddError(err error) {
-	cur.Errors = append(cur.Errors, err.Error())
+func NewSimpleResponse() *simpleResponse {
+	return &simpleResponse{Errors: []string{}}
+}
+
+func (s *simpleResponse) AddError(err error) {
+	s.Errors = append(s.Errors, err.Error())
 }
 
 type createUserRequest struct {
@@ -106,7 +110,7 @@ func (cur *createUserRequest) CreateAccount(adb *user.AccountDB) error {
 	return adb.Create(acc)
 }
 
-func (cur *createUserRequest) Validate(r *createUserResponse) error {
+func (cur *createUserRequest) Validate(r *simpleResponse) error {
 	var err error
 	if cur.Forename == "" {
 		err = errors.New("Forename is empty")
@@ -133,10 +137,10 @@ func makeCreateUserHandler(adb *user.AccountDB) echo.HandlerFunc {
 		if err := c.Bind(cur); err != nil {
 			return err
 		}
-		r := createUserResponse{}
-		err := cur.Validate(&r)
+		r := NewSimpleResponse()
+		err := cur.Validate(r)
 		if err != nil {
-			return c.JSON(http.StatusOK, r)
+			return c.JSON(http.StatusBadRequest, *r)
 		}
 		err = cur.CreateAccount(adb)
 		if err != nil {
@@ -146,18 +150,46 @@ func makeCreateUserHandler(adb *user.AccountDB) echo.HandlerFunc {
 	}
 }
 
+type loginRequest struct {
+	UserName string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (lr *loginRequest) Validate(r *simpleResponse) error {
+	var err error
+	if lr.UserName == "" {
+		err = errors.New("No user name was provided")
+		r.AddError(err)
+	}
+	if lr.Password == "" {
+		err = errors.New("No password was provided")
+		r.AddError(err)
+	}
+	return err
+}
+
 func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		account, err := adb.Get(c.FormValue("username"))
+		lr := new(loginRequest)
+		if err := c.Bind(lr); err != nil {
+			return err
+		}
+		r := NewSimpleResponse()
+		err := lr.Validate(r)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, *r)
+		}
+		account, err := adb.Get(lr.UserName)
 		if err != nil {
 			e.Logger.Warn("Couldn't get account: " + err.Error())
-			return c.Redirect(http.StatusSeeOther, "/login?failed=true")
+			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
 
-		p := HashPassword(c.FormValue("password"))
+		p := HashPassword(lr.Password)
 		if p != account.HashedPassword {
 			e.Logger.Warn("bad password")
-			return c.Redirect(http.StatusSeeOther, "/login?failed=true")
+			r.AddError(errors.New("Bad credentials - user name and password not valid for this service"))
+			return c.JSON(http.StatusUnauthorized, *r)
 		}
 		cookie, err := GetAccountCookie(adb, *account)
 		if err != nil {
@@ -167,25 +199,7 @@ func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFu
 		e.Logger.Info("Set Cookie")
 		c.SetCookie(cookie)
 
-		target := c.QueryParam("target")
-		if target == "" {
-			target = "/frontpage"
-		}
-
-		page := fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-		  <head>
-		    <meta http-equiv="refresh" content="0; url=%s" />
-		  </head>
-		  <body>
-		    <p>Redirecting, please wait...</p>
-		  </body>
-		</html>
-		`, target)
-
-		e.Logger.Info("Redirect to " + target)
-		return c.HTML(http.StatusOK, page)
+		return c.JSON(http.StatusOK, *r)
 	}
 }
 
@@ -197,6 +211,6 @@ func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
 	e.GET("/user/admin/exists.json", makeWelcomeHandler(adb))
 	// e.GET("/newuser", newUserHandler)
 	e.POST("/user/new.json", makeCreateUserHandler(adb))
-	e.GET("/login", loginHandler)
+	// e.GET("/login", loginHandler)
 	e.POST("/authenticate", makeAuthenticationHandler(e, adb))
 }

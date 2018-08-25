@@ -19,7 +19,7 @@ var UserForm = new Vue({
 	    	isadmin: isAdmin,
 	    }).then(
 	    	function(response) {
-	    	    self.errors = response.data.Errors
+		    window.location.href = "/app.html"
 	    	}
 	    ).catch(
 	    	function(error) {

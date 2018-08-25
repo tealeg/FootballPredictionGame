@@ -20,7 +20,7 @@ new Vue({
 	},
 	handleAdminExists: function() {
 	    if (this.adminUserExists == true) {
-		window.location.href = "/login.html"
+		window.location.href = "/app.html"
 	    } else {
 		window.location.href = "/firstuser.html"
 	    }

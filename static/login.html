@@ -25,11 +25,11 @@
 	  </div>
 	  <div class="row">
 	    <div class="col-3"><label for="username">Username</label></div>
-	    <div class="col-9"><input type="text" name="username" /></div>
+	    <div class="col-9"><input type="text" name="username" v-model="username"/></div>
 	  </div>
 	  <div class="row">
 	    <div class="col-3"><label for="password">Password</label></div>
-	    <div class="col-9"><input type="text" name="password" /></div>
+	    <div class="col-9"><input type="password" name="password" v-model="password"/></div>
 	  </div>
 	  <div class="row">
 	    <div class="col-9"></div>
@@ -38,5 +38,6 @@
 	</div>
       </fieldset>
     </form>
+    <script src="/js/login.js"></script>
   </body>
 </html>
