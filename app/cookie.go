@@ -58,7 +58,7 @@ func SecurePage(e *echo.Echo, adb *user.AccountDB, h echo.HandlerFunc) echo.Hand
 	return func(c echo.Context) error {
 		if !checkAccountCookie(e, adb, c, time.Now()) {
 			e.Logger.Warn("Cookie check failed")
-			return c.Redirect(http.StatusSeeOther, "/login?failed=timeout")
+			return c.Redirect(http.StatusSeeOther, "/login.html?failed=timeout")
 		}
 		e.Logger.Info("Cookie check succeeded")
 		return h(c)

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/main.css"></link>
+    <link rel="stylesheet" type="text/css" href="/css/grid/simple-grid.min.css"></link>
+  </head>
+  <body>
+  <body>
+    <form id="login-form" @submit="login">
+      <fieldset>
+	<div class="container">
+	  <div class="row" v-if="errors.length">
+	    <div class="col-12">
+	      <ul>
+		<li v-for="error in errors">{{ error }}</li>
+	      </ul>
+	    </div>
+	  </div>
+	  <div class="row">
+	    <div class="col-12">Please enter your login details</div>
+	  </div>
+	  <div class="row">
+	    <div class="col-3"><label for="username">Username</label></div>
+	    <div class="col-9"><input type="text" name="username" v-model="username"/></div>
+	  </div>
+	  <div class="row">
+	    <div class="col-3"><label for="password">Password</label></div>
+	    <div class="col-9"><input type="password" name="password" v-model="password"/></div>
+	  </div>
+	  <div class="row">
+	    <div class="col-9"></div>
+	    <div class="col-3"><input type="submit" value="Log-in" /></div>
+	  </div>
+	</div>
+      </fieldset>
+    </form>
+    <script src="/js/login.js"></script>
+  </body>
+</html>

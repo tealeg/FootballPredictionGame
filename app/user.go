@@ -2,37 +2,13 @@ package app
 
 import (
 	"crypto/sha1"
+	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/labstack/echo"
 	"github.com/tealeg/FootballPredictionGame/user"
 )
-
-func firstUserHandler(c echo.Context) error {
-	return c.HTML(http.StatusOK, `<!DOCTYPE html>
-
-<html>
-  <head>
-    <meta charset="UTF-8">
-  </head>
-  <body>
-    <form action="/createuser" method="POST">
-      <fieldset>
-        <legend>No admin user yet exists, please enter the admin users details here.</legend>
-        Forename: <input type="text" name="forename"/><br />
-        Surname: <input type="text" name="surname"/><br />
-        Username: <input type="text" name="username"/><br />
-        Password: <input type="password" name="password"/><br />
-        <input type="hidden" name="isadmin" value="yes" />
-        <input type="submit" value="add user"/>
-      </fieldset>
-    </form>
-  </body>
-</html>
-`)
-}
 
 func newUserHandler(c echo.Context) error {
 	return c.HTML(http.StatusOK, `<!DOCTYPE html>
@@ -97,42 +73,123 @@ func makeWelcomeHandler(adb *user.AccountDB) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		if exists {
-			return c.Redirect(http.StatusSeeOther, "/frontpage")
+			return c.JSON(http.StatusOK, true)
 		}
-		return c.Redirect(http.StatusSeeOther, "/firstuser")
+		return c.JSON(http.StatusOK, false)
 	}
+}
+
+type simpleResponse struct {
+	Errors []string
+}
+
+func NewSimpleResponse() *simpleResponse {
+	return &simpleResponse{Errors: []string{}}
+}
+
+func (s *simpleResponse) AddError(err error) {
+	s.Errors = append(s.Errors, err.Error())
+}
+
+type createUserRequest struct {
+	Forename string `json:"forename"`
+	Surname  string `json:"surname"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	IsAdmin  bool   `json:"isadmin"`
+}
+
+func (cur *createUserRequest) CreateAccount(adb *user.AccountDB) error {
+	acc := user.Account{
+		Forename:       cur.Forename,
+		Surname:        cur.Surname,
+		Name:           cur.Username,
+		HashedPassword: HashPassword(cur.Password),
+		IsAdmin:        cur.IsAdmin,
+	}
+	return adb.Create(acc)
+}
+
+func (cur *createUserRequest) Validate(r *simpleResponse) error {
+	var err error
+	if cur.Forename == "" {
+		err = errors.New("Forename is empty")
+		r.AddError(err)
+	}
+	if cur.Surname == "" {
+		err = errors.New("Surname is empty")
+		r.AddError(err)
+	}
+	if cur.Username == "" {
+		err = errors.New("Username is empty")
+		r.AddError(err)
+	}
+	if cur.Password == "" {
+		err = errors.New("Password is empty")
+		r.AddError(err)
+	}
+	return err
 }
 
 func makeCreateUserHandler(adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		isAdmin := strings.ToLower(c.FormValue("isadmin")) == "yes"
-		acc := user.Account{
-			Forename:       c.FormValue("forename"),
-			Surname:        c.FormValue("surname"),
-			Name:           c.FormValue("username"),
-			HashedPassword: HashPassword(c.FormValue("password")),
-			IsAdmin:        isAdmin,
+		cur := new(createUserRequest)
+		if err := c.Bind(cur); err != nil {
+			return err
 		}
-		err := adb.Create(acc)
+		r := NewSimpleResponse()
+		err := cur.Validate(r)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, *r)
+		}
+		err = cur.CreateAccount(adb)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
-		return c.Redirect(http.StatusSeeOther, "/login")
+		return c.JSON(http.StatusOK, r)
 	}
+}
+
+type loginRequest struct {
+	UserName string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (lr *loginRequest) Validate(r *simpleResponse) error {
+	var err error
+	if lr.UserName == "" {
+		err = errors.New("No user name was provided")
+		r.AddError(err)
+	}
+	if lr.Password == "" {
+		err = errors.New("No password was provided")
+		r.AddError(err)
+	}
+	return err
 }
 
 func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		account, err := adb.Get(c.FormValue("username"))
+		lr := new(loginRequest)
+		if err := c.Bind(lr); err != nil {
+			return err
+		}
+		r := NewSimpleResponse()
+		err := lr.Validate(r)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, *r)
+		}
+		account, err := adb.Get(lr.UserName)
 		if err != nil {
 			e.Logger.Warn("Couldn't get account: " + err.Error())
-			return c.Redirect(http.StatusSeeOther, "/login?failed=true")
+			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
 
-		p := HashPassword(c.FormValue("password"))
+		p := HashPassword(lr.Password)
 		if p != account.HashedPassword {
 			e.Logger.Warn("bad password")
-			return c.Redirect(http.StatusSeeOther, "/login?failed=true")
+			r.AddError(errors.New("Bad credentials - user name and password not valid for this service"))
+			return c.JSON(http.StatusUnauthorized, *r)
 		}
 		cookie, err := GetAccountCookie(adb, *account)
 		if err != nil {
@@ -142,25 +199,7 @@ func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFu
 		e.Logger.Info("Set Cookie")
 		c.SetCookie(cookie)
 
-		target := c.QueryParam("target")
-		if target == "" {
-			target = "/frontpage"
-		}
-
-		page := fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-		  <head>
-		    <meta http-equiv="refresh" content="0; url=%s" />
-		  </head>
-		  <body>
-		    <p>Redirecting, please wait...</p>
-		  </body>
-		</html>
-		`, target)
-
-		e.Logger.Info("Redirect to " + target)
-		return c.HTML(http.StatusOK, page)
+		return c.JSON(http.StatusOK, *r)
 	}
 }
 
@@ -169,10 +208,9 @@ func HashPassword(password string) string {
 }
 
 func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
-	e.GET("/", makeWelcomeHandler(adb))
-	e.GET("/firstuser", firstUserHandler)
-	e.GET("/newuser", newUserHandler)
-	e.POST("/createuser", makeCreateUserHandler(adb))
-	e.GET("/login", loginHandler)
+	e.GET("/user/admin/exists.json", makeWelcomeHandler(adb))
+	// e.GET("/newuser", newUserHandler)
+	e.POST("/user/new.json", makeCreateUserHandler(adb))
+	// e.GET("/login", loginHandler)
 	e.POST("/authenticate", makeAuthenticationHandler(e, adb))
 }
