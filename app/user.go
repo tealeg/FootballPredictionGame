@@ -66,15 +66,18 @@ func loginHandler(c echo.Context) error {
 
 }
 
-func makeWelcomeHandler(adb *user.AccountDB) echo.HandlerFunc {
+func makeAdminUserExistsHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		exists, err := adb.AdminUserExists()
 		if err != nil {
+			e.Logger.Error(err.Error())
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		if exists {
+			e.Logger.Error("Admin user exists")
 			return c.JSON(http.StatusOK, true)
 		}
+		e.Logger.Error("Admin user does not exist")
 		return c.JSON(http.StatusOK, false)
 	}
 }
@@ -131,7 +134,7 @@ func (cur *createUserRequest) Validate(r *simpleResponse) error {
 	return err
 }
 
-func makeCreateUserHandler(adb *user.AccountDB) echo.HandlerFunc {
+func makeCreateUserHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cur := new(createUserRequest)
 		if err := c.Bind(cur); err != nil {
@@ -140,7 +143,10 @@ func makeCreateUserHandler(adb *user.AccountDB) echo.HandlerFunc {
 		r := NewSimpleResponse()
 		err := cur.Validate(r)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, *r)
+			for _, rerr := range r.Errors {
+				e.Logger.Error(rerr)
+			}
+			return echo.NewHTTPError(http.StatusBadRequest, r.Errors)
 		}
 		err = cur.CreateAccount(adb)
 		if err != nil {
@@ -177,26 +183,27 @@ func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFu
 		r := NewSimpleResponse()
 		err := lr.Validate(r)
 		if err != nil {
+			e.Logger.Error(err.Error())
 			return c.JSON(http.StatusBadRequest, *r)
 		}
 		account, err := adb.Get(lr.UserName)
 		if err != nil {
-			e.Logger.Warn("Couldn't get account: " + err.Error())
+			e.Logger.Error("Couldn't get account: " + err.Error())
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
 
 		p := HashPassword(lr.Password)
 		if p != account.HashedPassword {
-			e.Logger.Warn("bad password")
+			e.Logger.Error("bad password")
 			r.AddError(errors.New("Bad credentials - user name and password not valid for this service"))
 			return c.JSON(http.StatusUnauthorized, *r)
 		}
 		cookie, err := GetAccountCookie(adb, *account)
 		if err != nil {
-			e.Logger.Warn("Couldn't get cookie: " + err.Error())
+			e.Logger.Error("Couldn't get cookie: " + err.Error())
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
-		e.Logger.Info("Set Cookie")
+		e.Logger.Error("Set Cookie")
 		c.SetCookie(cookie)
 
 		return c.JSON(http.StatusOK, *r)
@@ -208,9 +215,9 @@ func HashPassword(password string) string {
 }
 
 func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
-	e.GET("/user/admin/exists.json", makeWelcomeHandler(adb))
+	e.GET("/user/admin/exists.json", makeAdminUserExistsHandler(e, adb))
 	// e.GET("/newuser", newUserHandler)
-	e.POST("/user/new.json", makeCreateUserHandler(adb))
+	e.PUT("/user/new.json", SecurePage(e, adb, makeCreateUserHandler(e, adb)))
 	// e.GET("/login", loginHandler)
 	e.POST("/authenticate", makeAuthenticationHandler(e, adb))
 }

@@ -1,7 +1,96 @@
 var m = require("mithril")
+var User = require("../models/User")
 
-module.exports = {
+var FirstUserForm = {
+    errors: [],
     view: function() {
-	return m("h1.h1", "first user form")
+	return m(".first-user-form", [
+	    m("form.form",
+	      {
+		  onsubmit: function(e) {
+		      e.preventDefault()
+		      User.current.isAdmin = true
+		      User.save().then(
+			  window.location.href = "/"
+		      ).catch(secure).catch(
+			  function(err) {
+			      FirstUserForm.errors.push(err)
+			  }
+		      )
+		  }
+	      }
+	      ,[
+		m("fieldset", [
+		    m(".container", [
+			FirstUserForm.errors.map(
+			    function(err) {
+				m(".row", [
+				    m(".col-12", [
+					m(".error", err),
+				    ])
+				])
+			    }
+			),
+			m(".row", [
+			    m(".col-12", [
+				m("legend", "No adminstration account has been created. Please create one now.")
+			    ])
+			]),
+			m(".row", [
+			    m(".col-3", [m("label", {for: "forename"}, "Forename")]),
+			    m(".col-9", [m("input", {
+				type: "text",
+				name: "forename",
+				oninput: m.withAttr("value", function(value){
+				    User.current.forename = value
+				}),
+				value: User.current.forename,
+			    })]),
+			]),
+			m(".row", [
+			    m(".col-3", m("label", {for: "surname"}, "Surname")),
+			    m(".col-9", m("input", {
+				type: "text",
+				name: "surname",
+				oninput: m.withAttr("value", function(value) {
+				    User.current.surname = value
+				}),
+				value: User.current.surname,
+			    })),
+			]),
+			m(".row", [
+			    m(".col-3", m("label", {for: "username"}, "Username")),
+			    m(".col-9", m("input", {
+				type: "text",
+				name: "username",
+				oninput: m.withAttr("value", function(value) {
+				    User.current.username = value
+				}),
+				value: User.current.username,
+			    })),
+			]),
+			m(".row", [
+			    m(".col-3", m("label", {for: "password"}, "Password")),
+			    m(".col-9", m("input", {
+				type: "password",
+				name: "password",
+				oninput: m.withAttr("value", function(value){
+				    User.current.password = value
+				}),
+				value: User.current.password,
+			    })),
+			]),
+			m(".row", [
+			    m(".col-9", []),
+			    m(".col-3", [
+				m("input", {type: "submit", value: "Create Account"})
+			    ])
+			])
+		    ])
+		])
+	    ])
+	])
     }
 }
+
+module.exports = FirstUserForm
