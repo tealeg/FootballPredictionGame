@@ -10,7 +10,6 @@ import (
 
 const UserCookieName = "FPG2UserName"
 
-//
 func GetAccountCookie(adb *user.AccountDB, acc user.Account) (*http.Cookie, error) {
 	cookie := new(http.Cookie)
 	cookie.Name = UserCookieName
@@ -58,7 +57,7 @@ func SecurePage(e *echo.Echo, adb *user.AccountDB, h echo.HandlerFunc) echo.Hand
 	return func(c echo.Context) error {
 		if !checkAccountCookie(e, adb, c, time.Now()) {
 			e.Logger.Warn("Cookie check failed")
-			return c.Redirect(http.StatusSeeOther, "/login.html?failed=timeout")
+			return echo.NewHTTPError(http.StatusUnauthorized, "Cookie check failed")
 		}
 		e.Logger.Info("Cookie check succeeded")
 		return h(c)

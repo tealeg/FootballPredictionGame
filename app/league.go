@@ -26,6 +26,16 @@ func makeNewLeagueHandler(e *echo.Echo, cdb *competition.DB) echo.HandlerFunc {
 	}
 }
 
+func makeGetAllLeaguesHandler(e *echo.Echo, cdb *competition.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ls, err := cdb.GetAllLeagues()
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err)
+		}
+		return c.JSON(http.StatusOK, &ls)
+	}
+}
+
 func makeLeagueHandler(e *echo.Echo, adb *user.AccountDB, cdb *competition.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id, err := strconv.ParseUint(c.Param("id"), 10, 64)
@@ -80,6 +90,7 @@ func makeLeagueHandler(e *echo.Echo, adb *user.AccountDB, cdb *competition.DB) e
 }
 
 func setupLeagueHandlers(e *echo.Echo, adb *user.AccountDB, cdb *competition.DB) {
-	e.POST("/league/new", SecurePage(e, adb, makeNewLeagueHandler(e, cdb)))
+	e.GET("/leagues.json", SecurePage(e, adb, makeGetAllLeaguesHandler(e, cdb)))
+	e.POST("/leagues/add", SecurePage(e, adb, makeNewLeagueHandler(e, cdb)))
 	e.GET("/league/:id", SecurePage(e, adb, makeLeagueHandler(e, adb, cdb)))
 }
