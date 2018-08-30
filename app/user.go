@@ -175,11 +175,15 @@ func (lr *loginRequest) Validate(r *simpleResponse) error {
 }
 
 func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
+	e.Logger.Error("Creating AuthenticationHandler")
 	return func(c echo.Context) error {
+		e.Logger.Error("Authenticating")
 		lr := new(loginRequest)
 		if err := c.Bind(lr); err != nil {
+			e.Logger.Error(err.Error())
 			return err
 		}
+		e.Logger.Error(fmt.Sprintf("%+v", lr))
 		r := NewSimpleResponse()
 		err := lr.Validate(r)
 		if err != nil {
@@ -210,14 +214,28 @@ func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFu
 	}
 }
 
+func makeLogOutHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		cookie, err := ExpireAccountCookie(e, c, adb)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		e.Logger.Error("expire cookie")
+		c.SetCookie(cookie)
+		return c.JSON(http.StatusOK, nil)
+	}
+}
+
 func HashPassword(password string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(password)))
 }
 
 func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
+	e.PUT("/authenticate", makeAuthenticationHandler(e, adb))
 	e.GET("/user/admin/exists.json", makeAdminUserExistsHandler(e, adb))
 	// e.GET("/newuser", newUserHandler)
 	e.PUT("/user/new.json", SecurePage(e, adb, makeCreateUserHandler(e, adb)))
 	// e.GET("/login", loginHandler)
-	e.POST("/authenticate", makeAuthenticationHandler(e, adb))
+
+	e.POST("/logout", makeLogOutHandler(e, adb))
 }

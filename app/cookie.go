@@ -25,6 +25,27 @@ func GetAccountCookie(adb *user.AccountDB, acc user.Account) (*http.Cookie, erro
 	return cookie, nil
 }
 
+func ExpireAccountCookie(e *echo.Echo, c echo.Context, adb *user.AccountDB) (*http.Cookie, error) {
+	cookie, err := c.Cookie(UserCookieName)
+	if err != nil {
+		e.Logger.Error(err.Error())
+		return nil, err
+	}
+	acc, err := adb.Get(cookie.Value)
+	if err != nil {
+		e.Logger.Error(err.Error())
+		return nil, err
+	}
+	expiration := time.Now().Add(-20 * time.Minute)
+	acc.SessionExpires = expiration
+	cookie.Expires = expiration
+	err = adb.Update(acc.Name, *acc)
+	if err != nil {
+		return nil, err
+	}
+	return cookie, nil
+}
+
 func checkAccountCookie(e *echo.Echo, adb *user.AccountDB, c echo.Context, checkTime time.Time) bool {
 	cookie, err := c.Cookie(UserCookieName)
 	if err != nil {

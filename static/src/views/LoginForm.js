@@ -1,18 +1,30 @@
 var m = require("mithril")
 var User = require("../models/User")
+var secure = require("../models/secure")
 
 var LoginForm = {
     errors: [],
     view: function() {
 	return m(".login-form", [
+	    m("ul.errors", LoginForm.errors.map(
+		function(err) {
+		    return m("li", err)
+		}
+	    )),
 	    m("form", {
 		onsubmit: function(e) {
 		    e.preventDefault()
 		    User.login().then(
-			window.location.href = "/"
+			function (response) {
+			    if (response.Errors.length > 0) {
+				LoginForm.errors = response.Errors
+			    } else {
+				window.location.href = "/"
+			    }
+			}
 		    ).catch(secure).catch(
 			function(err) {
-			    LoginForm.errors.push(err)
+			    LoginForm.errors = err.Errors
 			}
 		    )
 		}

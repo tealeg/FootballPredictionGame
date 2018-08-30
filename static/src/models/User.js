@@ -12,10 +12,9 @@ var User = {
     },
     login: function() {
 	return m.request({
-	    method: "POST",
+	    method: "PUT",
 	    url: "/authenticate",
 	    data: User.current,
-	    withCredentials: true,
 	})
     }
 }
