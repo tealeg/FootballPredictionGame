@@ -15,7 +15,14 @@ var User = {
 	    url: "/authenticate",
 	    data: User.current,
 	})
+    },
+    logOut: function() {
+	return m.request({
+	    method: "GET",
+	    url: "/logout",
+	})
     }
+
 }
 
 module.exports = User

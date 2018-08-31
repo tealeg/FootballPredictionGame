@@ -1,12 +1,12 @@
 var m = require("mithril")
-var LogOut = require("../models/LogOut")
+var User = require("../models/User")
 
 var LogOutButton = {
     view: function(){
 	return m("form", {
 	    onsubmit: function(e) {
 		e.preventDefault()
-		LogOut.logOut().then(
+		User.logOut().then(
 		    function (response) {
 			window.location.href = "/"
 		    }

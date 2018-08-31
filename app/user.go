@@ -182,5 +182,5 @@ func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
 	e.PUT("/authenticate", makeAuthenticationHandler(e, adb))
 	e.GET("/user/admin/exists.json", makeAdminUserExistsHandler(e, adb))
 	e.PUT("/user/new.json", makeCreateAccountHandler(e, adb))
-	e.POST("/logout", makeLogOutHandler(e, adb))
+	e.GET("/logout", makeLogOutHandler(e, adb))
 }
