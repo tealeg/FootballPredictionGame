@@ -138,6 +138,7 @@ func makeCreateUserHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cur := new(createUserRequest)
 		if err := c.Bind(cur); err != nil {
+			e.Logger.Error(err.Error())
 			return err
 		}
 		r := NewSimpleResponse()
@@ -234,7 +235,7 @@ func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
 	e.PUT("/authenticate", makeAuthenticationHandler(e, adb))
 	e.GET("/user/admin/exists.json", makeAdminUserExistsHandler(e, adb))
 	// e.GET("/newuser", newUserHandler)
-	e.PUT("/user/new.json", SecurePage(e, adb, makeCreateUserHandler(e, adb)))
+	e.PUT("/user/new.json", makeCreateUserHandler(e, adb))
 	// e.GET("/login", loginHandler)
 
 	e.POST("/logout", makeLogOutHandler(e, adb))

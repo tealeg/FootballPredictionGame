@@ -1,6 +1,7 @@
 var m = require("mithril")
 var User = require("../models/User")
 var secure = require("../models/secure")
+var NewUserButton = require("../views/NewUserButton")
 
 var LoginForm = {
     errors: [],
@@ -24,7 +25,13 @@ var LoginForm = {
 			}
 		    ).catch(secure).catch(
 			function(err) {
-			    LoginForm.errors = err.Errors
+			    if ("Errors" in err) {
+				LoginForm.errors = err.Errors
+			    } else {
+				if ("message" in err) {
+				    LoginForm.errors.push(err.message)
+				}
+			    }
 			}
 		    )
 		}
@@ -73,10 +80,10 @@ var LoginForm = {
 				})
 			    ])
 			])
-			
 		    ])
-		])
-	    ])
+		]),
+	    ]),
+	    m(NewUserButton),	    	    	    
 	])
     }
 }

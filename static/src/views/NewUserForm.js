@@ -1,27 +1,28 @@
 var m = require("mithril")
-var UserForm = require("./UserForm")
+var UserForm = require("../views/UserForm")
 
-var FirstUserForm = {
-    errors: [],
-    view: function() {
-	return m(".first-user-form", [
+var NewUserForm = {
+    view: function () {
+	return m(".new-user-form", [
 	    m("form.form",
 	      {
 		  onsubmit: function(e) {
 		      e.preventDefault()
-		      UserForm.user.current.isAdmin = true
+		      UserForm.user.current.isAdmin = false
 		      UserForm.user.save().then(
 			  window.location.href = "/"
 		      ).catch(secure).catch(
 			  function(err) {
-			      FirstUserForm.errors.push(err)
+			      NewUserForm.errors.push(err)
 			  }
 		      )
 		  }
 	      }
-	      ,[m(UserForm)])
+	      , m(UserForm)
+	     )
 	])
     }
 }
 
-module.exports = FirstUserForm
+module.exports = NewUserForm
+
