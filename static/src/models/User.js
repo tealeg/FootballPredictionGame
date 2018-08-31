@@ -7,7 +7,6 @@ var User = {
 	    method: "PUT",
 	    url: "/user/new.json",
 	    data: User.current,
-	    withCredentials: true
 	})
     },
     login: function() {

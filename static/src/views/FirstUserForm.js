@@ -11,7 +11,9 @@ var FirstUserForm = {
 		      e.preventDefault()
 		      UserForm.user.current.isAdmin = true
 		      UserForm.user.save().then(
-			  window.location.href = "/"
+			  function(response) {
+			      window.location.href = "/"
+			  }
 		      ).catch(secure).catch(
 			  function(err) {
 			      FirstUserForm.errors.push(err)

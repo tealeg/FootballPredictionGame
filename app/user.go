@@ -10,64 +10,9 @@ import (
 	"github.com/tealeg/FootballPredictionGame/user"
 )
 
-func newUserHandler(c echo.Context) error {
-	return c.HTML(http.StatusOK, `<!DOCTYPE html>
-
-<html>
-  <head>
-    <meta charset="UTF-8">
-  </head>
-  <body>
-    <form action="/createuser" method="POST">
-      <fieldset>
-        <legend>No admin user yet exists, please enter the admin users details here.</legend>
-        Forename: <input type="text" name="forename"/><br />
-        Surname: <input type="text" name="surname"/><br />
-        Username: <input type="text" name="username"/><br />
-        Password: <input type="password" name="password"/><br />
-        <input type="hidden" name="isadmin" value="no" />
-        <input type="submit" value="Create account"/>
-      </fieldset>
-    </form>
-  </body>
-</html>
-`)
-}
-
-func loginHandler(c echo.Context) error {
-	failed := c.QueryParam("failed")
-
-	page := `<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-  </head>
-  <body>`
-	switch failed {
-	case "true":
-		page += `<span class="error">Login Failed</span>`
-	case "timeout":
-		page += `<span class="error">Session expired</span>`
-	}
-
-	page += `<form action="/authenticate" method="POST">
-      <fieldset>
-        <legend>Please login</legend>
-        Username: <input type="text" name="username"/><br />
-        Password: <input type="password" name="password"/><br />
-        <input type="submit" value="login"
-      </fieldset>
-    </form>
-    <p>Not already a user? <a href="/newuser">Create an account.</a></p>
-  </body>
-</html>
-`
-	return c.HTML(http.StatusOK, page)
-
-}
-
 func makeAdminUserExistsHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		e.Logger.Error("Check if admin user exists")
 		exists, err := adb.AdminUserExists()
 		if err != nil {
 			e.Logger.Error(err.Error())
@@ -94,7 +39,7 @@ func (s *simpleResponse) AddError(err error) {
 	s.Errors = append(s.Errors, err.Error())
 }
 
-type createUserRequest struct {
+type createAccountRequest struct {
 	Forename string `json:"forename"`
 	Surname  string `json:"surname"`
 	Username string `json:"username"`
@@ -102,7 +47,7 @@ type createUserRequest struct {
 	IsAdmin  bool   `json:"isadmin"`
 }
 
-func (cur *createUserRequest) CreateAccount(adb *user.AccountDB) error {
+func (cur *createAccountRequest) CreateAccount(adb *user.AccountDB) error {
 	acc := user.Account{
 		Forename:       cur.Forename,
 		Surname:        cur.Surname,
@@ -113,7 +58,7 @@ func (cur *createUserRequest) CreateAccount(adb *user.AccountDB) error {
 	return adb.Create(acc)
 }
 
-func (cur *createUserRequest) Validate(r *simpleResponse) error {
+func (cur *createAccountRequest) Validate(r *simpleResponse) error {
 	var err error
 	if cur.Forename == "" {
 		err = errors.New("Forename is empty")
@@ -134,9 +79,10 @@ func (cur *createUserRequest) Validate(r *simpleResponse) error {
 	return err
 }
 
-func makeCreateUserHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
+func makeCreateAccountHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		cur := new(createUserRequest)
+		e.Logger.Error("Creating user")
+		cur := new(createAccountRequest)
 		if err := c.Bind(cur); err != nil {
 			e.Logger.Error(err.Error())
 			return err
@@ -153,6 +99,7 @@ func makeCreateUserHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
+		e.Logger.Error("User created: %+v", r)
 		return c.JSON(http.StatusOK, r)
 	}
 }
@@ -234,9 +181,6 @@ func HashPassword(password string) string {
 func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
 	e.PUT("/authenticate", makeAuthenticationHandler(e, adb))
 	e.GET("/user/admin/exists.json", makeAdminUserExistsHandler(e, adb))
-	// e.GET("/newuser", newUserHandler)
-	e.PUT("/user/new.json", makeCreateUserHandler(e, adb))
-	// e.GET("/login", loginHandler)
-
+	e.PUT("/user/new.json", makeCreateAccountHandler(e, adb))
 	e.POST("/logout", makeLogOutHandler(e, adb))
 }
