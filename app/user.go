@@ -47,7 +47,7 @@ type createAccountRequest struct {
 	IsAdmin  bool   `json:"isadmin"`
 }
 
-func (cur *createAccountRequest) CreateAccount(adb *user.AccountDB) error {
+func (cur *createAccountRequest) createAccount(adb *user.AccountDB) error {
 	acc := user.Account{
 		Forename:       cur.Forename,
 		Surname:        cur.Surname,
@@ -95,7 +95,7 @@ func makeCreateAccountHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFun
 			}
 			return echo.NewHTTPError(http.StatusBadRequest, r.Errors)
 		}
-		err = cur.CreateAccount(adb)
+		err = cur.createAccount(adb)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}

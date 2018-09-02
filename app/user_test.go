@@ -95,3 +95,95 @@ func TestAdminUserExistsWithAdmin(t *testing.T) {
 	}
 
 }
+
+func TestCreateAccountRequestValidation(t *testing.T) {
+	var expectations = []struct {
+		CAR      *createAccountRequest
+		Expected []string
+	}{
+		{
+			CAR: &createAccountRequest{},
+			Expected: []string{
+				"Forename is empty",
+				"Surname is empty",
+				"Username is empty",
+				"Password is empty",
+			},
+		},
+		{
+			CAR: &createAccountRequest{
+				Forename: "Bob",
+			},
+			Expected: []string{
+				"Surname is empty",
+				"Username is empty",
+				"Password is empty",
+			},
+		},
+		{
+			CAR: &createAccountRequest{
+				Surname: "Bobfrey",
+			},
+			Expected: []string{
+				"Forename is empty",
+				"Username is empty",
+				"Password is empty",
+			},
+		},
+		{
+			CAR: &createAccountRequest{
+				Username: "bobit",
+			},
+			Expected: []string{
+				"Forename is empty",
+				"Surname is empty",
+				"Password is empty",
+			},
+		},
+		{
+			CAR: &createAccountRequest{
+				Password: "lorena",
+			},
+			Expected: []string{
+				"Forename is empty",
+				"Surname is empty",
+				"Username is empty",
+			},
+		},
+		{
+			CAR: &createAccountRequest{
+				Forename: "Bob",
+				Surname:  "Bobfrey",
+				Username: "bobit",
+				Password: "lorena",
+			},
+			Expected: []string{},
+		},
+	}
+
+	for i, exp := range expectations {
+		r := &simpleResponse{}
+		eLen := len(exp.Expected)
+		err := exp.CAR.Validate(r)
+		if eLen > 0 {
+			if err == nil {
+				t.Fatalf("Case %d: expected error in validation, but got none", i)
+			}
+		} else {
+			if err != nil {
+				t.Fatalf("Case %d: unexpected error in validation: %s", i, err.Error())
+			}
+		}
+		aLen := len(r.Errors)
+		if aLen != eLen {
+			t.Fatalf("Case %d: expected %d errors, but got %d", i, eLen, aLen)
+		}
+
+		for j, msg := range r.Errors {
+			expected := exp.Expected[j]
+			if msg != expected {
+				t.Errorf("Case %d: r.Errors[%d] == %q, but should be %q", i, j, msg, expected)
+			}
+		}
+	}
+}
