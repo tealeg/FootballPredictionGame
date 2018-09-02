@@ -11,15 +11,22 @@ import (
 	"github.com/tealeg/FootballPredictionGame/user"
 )
 
+// setUpAccountDB is a utility function to simplify creating a
+// user.AccountDB for testing purposes.  It should be used in
+// conjuction with tearDownAccountDB.
 func setUpAccountDB() (*user.AccountDB, error) {
 	return user.NewAccountDB("test-account")
 }
 
+// tearDownAccountDB is a utility function, to simplify clearing up a
+// user.AccountDB used in a test. It should be used in conjuction with
+// setUpAccountDB.
 func tearDownAccountDB(adb *user.AccountDB) {
 	adb.Close()
 	os.Remove("test-account.db")
 }
 
+// When no admin user yet exists the AdminUserExistsHandler indicates this.
 func TestAdminUserExists(t *testing.T) {
 	adb, err := setUpAccountDB()
 	if err != nil {
@@ -52,6 +59,7 @@ func TestAdminUserExists(t *testing.T) {
 
 }
 
+// When an admin user exists the AdminUserExistsHandler indicates this.
 func TestAdminUserExistsWithAdmin(t *testing.T) {
 	adb, err := setUpAccountDB()
 	if err != nil {
@@ -96,6 +104,10 @@ func TestAdminUserExistsWithAdmin(t *testing.T) {
 
 }
 
+// createAccountRequests can be validated and will indicate which any
+// and all fields that have issues, by means of a simpleResponse.
+// Overall failues will be indicated by the return value of the
+// Validate function.
 func TestCreateAccountRequestValidation(t *testing.T) {
 	var expectations = []struct {
 		CAR      *createAccountRequest
