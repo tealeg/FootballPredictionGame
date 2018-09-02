@@ -10,6 +10,9 @@ import (
 	"github.com/tealeg/FootballPredictionGame/user"
 )
 
+// makeAdminUserExistsHandler returns a handler that will indicate if
+// an admin user has been created already.  This request should not
+// require authentication.
 func makeAdminUserExistsHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		e.Logger.Error("Check if admin user exists")
@@ -27,18 +30,23 @@ func makeAdminUserExistsHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerF
 	}
 }
 
+// simpleResponse is just a handy way to collect errors to return in a
+// JSON payload.
 type simpleResponse struct {
 	Errors []string
 }
 
-func NewSimpleResponse() *simpleResponse {
+// newSimpleResponse creates a simpleResponse with its Errors slice already allocated.
+func newSimpleResponse() *simpleResponse {
 	return &simpleResponse{Errors: []string{}}
 }
 
+// AddError appends an error to a simpleResponses Errors slice.
 func (s *simpleResponse) AddError(err error) {
 	s.Errors = append(s.Errors, err.Error())
 }
 
+// createAccountRequest is a holder for data passed into new user requests.
 type createAccountRequest struct {
 	Forename string `json:"forename"`
 	Surname  string `json:"surname"`
@@ -47,6 +55,7 @@ type createAccountRequest struct {
 	IsAdmin  bool   `json:"isadmin"`
 }
 
+// createAccount creates a user.Account based on its createAccountRequest
 func (cur *createAccountRequest) createAccount(adb *user.AccountDB) error {
 	acc := user.Account{
 		Forename:       cur.Forename,
@@ -58,6 +67,10 @@ func (cur *createAccountRequest) createAccount(adb *user.AccountDB) error {
 	return adb.Create(acc)
 }
 
+// Validate checks the members of a createAccountRequest for validity
+// and populate a simpleResponse with the errors it finds.  The last
+// error found will be returned, and can be used to indicate overall
+// validation failure (or, if nil, success).
 func (cur *createAccountRequest) Validate(r *simpleResponse) error {
 	var err error
 	if cur.Forename == "" {
@@ -79,6 +92,8 @@ func (cur *createAccountRequest) Validate(r *simpleResponse) error {
 	return err
 }
 
+// makeCreateAccountHandler returns ar handler that will attempt to
+// create a new user.Account based on the details provided.
 func makeCreateAccountHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		e.Logger.Error("Creating user")
@@ -87,7 +102,7 @@ func makeCreateAccountHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFun
 			e.Logger.Error(err.Error())
 			return err
 		}
-		r := NewSimpleResponse()
+		r := newSimpleResponse()
 		err := cur.Validate(r)
 		if err != nil {
 			for _, rerr := range r.Errors {
@@ -104,11 +119,16 @@ func makeCreateAccountHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFun
 	}
 }
 
+// logRequest is a holder for data passed by a login request
 type loginRequest struct {
 	UserName string `json:"username"`
 	Password string `json:"password"`
 }
 
+// Validate will validate the contents of a loginRequest.  Any errors
+// will be recorded on the provided simpleResponse, and the final
+// error will be returned, this can be used to indicate overall
+// failure (or, if null, success).
 func (lr *loginRequest) Validate(r *simpleResponse) error {
 	var err error
 	if lr.UserName == "" {
@@ -122,6 +142,11 @@ func (lr *loginRequest) Validate(r *simpleResponse) error {
 	return err
 }
 
+// makeAuthenticationHandler returns a handler that can be used to
+// process and approve or reject authentication requests.  If the
+// request is succesful a cookie will be set and then handlers wrapped
+// with the app/cookie.SecurePage middleware will gate their usage by
+// checking for the presence and actuality of this cookie.
 func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	e.Logger.Error("Creating AuthenticationHandler")
 	return func(c echo.Context) error {
@@ -132,7 +157,7 @@ func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFu
 			return err
 		}
 		e.Logger.Error(fmt.Sprintf("%+v", lr))
-		r := NewSimpleResponse()
+		r := newSimpleResponse()
 		err := lr.Validate(r)
 		if err != nil {
 			e.Logger.Error(err.Error())
@@ -162,6 +187,10 @@ func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFu
 	}
 }
 
+// makeLogOutHandler returns a handler that will expire a users
+// session cookie, and thus require them to reauthenticate before
+// accessing any handler wrapped with the app/cookie.SecurePage
+// middleware.
 func makeLogOutHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cookie, err := ExpireAccountCookie(e, c, adb)
@@ -174,10 +203,13 @@ func makeLogOutHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	}
 }
 
+// HashPassword will return a one-way hash (sha1) of the provided password.
 func HashPassword(password string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(password)))
 }
 
+// setupUserHandlers binds handlers to all endpoints concerning user
+// management and authentication
 func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
 	e.PUT("/authenticate", makeAuthenticationHandler(e, adb))
 	e.GET("/user/admin/exists.json", makeAdminUserExistsHandler(e, adb))
