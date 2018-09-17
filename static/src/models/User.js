@@ -4,7 +4,7 @@ var User = {
     current: {},
     save: function() {
 	return m.request({
-	    method: "PUT",
+	    method: "POST",
 	    url: "/user/new.json",
 	    data: User.current,
 	})

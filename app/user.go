@@ -108,7 +108,7 @@ func makeCreateAccountHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFun
 			for _, rerr := range r.Errors {
 				e.Logger.Error(rerr)
 			}
-			return echo.NewHTTPError(http.StatusBadRequest, r.Errors)
+			return c.JSON(http.StatusBadRequest, r.Errors)
 		}
 		err = cur.createAccount(adb)
 		if err != nil {
@@ -119,7 +119,7 @@ func makeCreateAccountHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFun
 	}
 }
 
-// logRequest is a holder for data passed by a login request
+// loginRequest is a holder for data passed by a login request
 type loginRequest struct {
 	UserName string `json:"username"`
 	Password string `json:"password"`
@@ -213,6 +213,6 @@ func HashPassword(password string) string {
 func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
 	e.PUT("/authenticate", makeAuthenticationHandler(e, adb))
 	e.GET("/user/admin/exists.json", makeAdminUserExistsHandler(e, adb))
-	e.PUT("/user/new.json", makeCreateAccountHandler(e, adb))
+	e.POST("/user/new.json", makeCreateAccountHandler(e, adb))
 	e.GET("/logout", makeLogOutHandler(e, adb))
 }
