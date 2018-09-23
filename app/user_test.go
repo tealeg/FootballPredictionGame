@@ -370,16 +370,12 @@ func TestAuthenticationHandlerWithValidCredetentials(t *testing.T) {
 		t.Fatal("Expected Set-Cookie header, but none was found")
 	}
 	cookie := cookies[0]
-	t.Errorf("Cookie: %T, %+v", cookie, cookie)
-	// t.Errorf("Headers: %+v", rec.HeaderMap)
-	// t.Errorf("Body: %s", rec.Body.String())
-	// var result bool
-	// err = json.Unmarshal(rec.Body.Bytes(), &result)
-	// if err != nil {
-	// 	t.Fatalf("error unmarshalling body: %s", err.Error())
-	// }
-	// if result {
-	// 	t.Error("expected handler to return false, but got true")
-	// }
-
+	fields := strings.Split(cookie, ";")
+	parts := strings.Split(fields[0], "=")
+	if parts[0] != "FPG2UserName" {
+		t.Error("Expected FPG2UserName cookie to be set, but it was not")
+	}
+	if parts[1] != "bobit" {
+		t.Errorf("Expected FPG2UserName cookie to = %q , but got %q", "bobit", parts[1])
+	}
 }
