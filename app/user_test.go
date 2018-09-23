@@ -28,7 +28,7 @@ func tearDownAccountDB(adb *user.AccountDB) {
 }
 
 // When no admin user yet exists the AdminUserExistsHandler indicates this.
-func TestAdminUserExists(t *testing.T) {
+func TestAdminUserExistsNoAdmin(t *testing.T) {
 	adb, err := setUpAccountDB()
 	if err != nil {
 		t.Fatalf("Unexpected error in setUpAccountDB: %s", err.Error())
