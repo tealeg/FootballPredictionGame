@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,19 +11,55 @@ import (
 	"github.com/tealeg/FootballPredictionGame/user"
 )
 
+// newLeagueRequest is a holder for data passed into new League requests.
+type newLeagueRequest struct {
+	Name string
+}
+
+// Validate checks the members of a newLeagueRequest for validity and
+// populates a simpleResponse with the errors it finds.  The last
+// error found will be returned, and can be used to indicate overall
+// validation failure (or, if nil, success).
+func (nlr *newLeagueRequest) Validate(r *simpleResponse) error {
+	var err error
+	if nlr.Name == "" {
+		err = errors.New("League name is empty")
+		r.AddError(err)
+	}
+	return err
+}
+
+//createLeague creates a competition.League based on its newLeagueRequest.
+func (nlr *newLeagueRequest) createLeague(cdb *competition.DB) (uint64, error) {
+	league := &competition.League{Name: nlr.Name}
+	return cdb.CreateLeague(league)
+}
+
 func makeNewLeagueHandler(e *echo.Echo, cdb *competition.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		name := c.FormValue("name")
-		if name == "" {
-			return c.String(http.StatusBadRequest, fmt.Sprintf("Invalid league name: %q", name))
+		e.Logger.Info("Creating League")
+		nlr := new(newLeagueRequest)
+		if err := c.Bind(nlr); err != nil {
+			e.Logger.Error(err.Error())
+			return err
 		}
-		league := &competition.League{Name: name}
-		id, err := cdb.CreateLeague(league)
+
+		r := newSimpleResponse()
+		err := nlr.Validate(r)
 		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err)
+			for _, rerr := range r.Errors {
+				e.Logger.Error(rerr)
+			}
+			return c.JSON(http.StatusBadRequest, r.Errors)
 		}
-		url := fmt.Sprintf("/league/%d", id)
-		return c.Redirect(http.StatusSeeOther, url)
+
+		lid, err := nlr.createLeague(cdb)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		r.ObjID = strconv.FormatUint(lid, 10)
+		e.Logger.Info("User created: %+v", r)
+		return c.JSON(http.StatusOK, r)
 	}
 }
 
@@ -91,6 +128,6 @@ func makeLeagueHandler(e *echo.Echo, adb *user.AccountDB, cdb *competition.DB) e
 
 func setupLeagueHandlers(e *echo.Echo, adb *user.AccountDB, cdb *competition.DB) {
 	e.GET("/leagues.json", SecurePage(e, adb, makeGetAllLeaguesHandler(e, cdb)))
-	e.POST("/leagues/add", SecurePage(e, adb, makeNewLeagueHandler(e, cdb)))
+	e.POST("/leagues/new.json", SecurePage(e, adb, makeNewLeagueHandler(e, cdb)))
 	e.GET("/league/:id", SecurePage(e, adb, makeLeagueHandler(e, adb, cdb)))
 }
