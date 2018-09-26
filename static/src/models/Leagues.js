@@ -13,10 +13,10 @@ var Leagues = {
 	    }
 	)
     },
-    new: [],
+    new: {},
     save: function() {
 	return m.request({
-	    method: "PUT",
+	    method: "POST",
 	    url: "/leagues/new.json",
 	    data: Leagues.new,
 	    withCredentials: true,
