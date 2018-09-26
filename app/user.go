@@ -80,7 +80,7 @@ func (cur *createAccountRequest) Validate(r *simpleResponse) error {
 // create a new user.Account based on the details provided.
 func makeCreateAccountHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		e.Logger.Error("Creating user")
+		e.Logger.Info("Creating user")
 		cur := new(createAccountRequest)
 		if err := c.Bind(cur); err != nil {
 			e.Logger.Error(err.Error())
@@ -98,7 +98,7 @@ func makeCreateAccountHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFun
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
-		e.Logger.Error("User created: %+v", r)
+		e.Logger.Info("User created: %+v", r)
 		return c.JSON(http.StatusOK, r)
 	}
 }
