@@ -52,7 +52,7 @@ func (cur *createAccountRequest) createAccount(adb *user.AccountDB) error {
 }
 
 // Validate checks the members of a createAccountRequest for validity
-// and populate a simpleResponse with the errors it finds.  The last
+// and populates a simpleResponse with the errors it finds.  The last
 // error found will be returned, and can be used to indicate overall
 // validation failure (or, if nil, success).
 func (cur *createAccountRequest) Validate(r *simpleResponse) error {
