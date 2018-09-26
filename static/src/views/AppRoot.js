@@ -3,26 +3,26 @@ var Leagues = require("../models/Leagues")
 var secure = require("../models/secure")
 var LogOutButton = require("../views/LogOutButton")
 
-module.exports = {
-    oninit: function(vnode) {
-	Leagues.loadList().catch(secure)
-    },
+AppRoot = {
     view: function() {
 	return m(".app-root", [
-	    m("header.app-root-header", "Fooball Prediction App"),
-	    m("aside.app-root-sidebar", [
-		m("h3.leagues", "Leagues"),
-		m(".leagues", 
-		  Leagues.list.map(
-		    function(league) {
-			return m("a.league-list-item", {href: "/league/" + league.ID, oncreate: m.route.link}, league.Name)
-		    }
-		)),
-		m("a.add-league-button", {href: "/leagues/add", oncreate: m.route.link}, "+"),
-	    ]),
-	    m("footer.app-root-footer", [
-		m(LogOutButton)
+	    m(".container", [
+		m(".row", [
+		    m(".col-12", [
+			m("header.app-root-header", "Fooball Prediction App"),
+		    ])
+		]),
+
+		m(".row", [
+		    m(".col-3", [m("a", {href: "/leagues", oncreate: m.route.link}, "Admin")]),
+		    m(".col-3", []),
+		    m(".col-3", [			
+			    m(LogOutButton)
+		    ])
+		])
 	    ])
 	])
     }
 }
+
+module.exports = AppRoot

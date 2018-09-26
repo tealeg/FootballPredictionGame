@@ -1,6 +1,7 @@
 var m = require("mithril")
 
 var Leagues = {
+    errors: [],
     list: [],
     loadList: function() {
 	return m.request({
@@ -9,7 +10,7 @@ var Leagues = {
 	    withCredentials: true,
 	}).then(
 	    function(result) {
-		Leagues.list = result.data
+		Leagues.list = result
 	    }
 	)
     },
