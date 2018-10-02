@@ -10,6 +10,19 @@ import (
 	"github.com/tealeg/FootballPredictionGame/user"
 )
 
+//makeIsAdminHandler returns a handler that will indicate if the
+//currently logged in user is and administrator.
+func makeIsAdminHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		acc, err := GetUserAccount(c, adb)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		return c.JSON(http.StatusOK, acc.IsAdmin)
+	}
+
+}
+
 // makeAdminUserExistsHandler returns a handler that will indicate if
 // an admin user has been created already.  This request should not
 // require authentication.

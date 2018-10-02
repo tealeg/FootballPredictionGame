@@ -379,3 +379,35 @@ func TestAuthenticationHandlerWithValidCredetentials(t *testing.T) {
 		t.Errorf("Expected FPG2UserName cookie to = %q , but got %q", "bobit", parts[1])
 	}
 }
+
+func TestIsAdminUserFalse(t *testing.T) {
+	adb, err := setUpAccountDB()
+	if err != nil {
+		t.Fatalf("Unexpected error in setUpAccountDB: %s", err.Error())
+	}
+	defer tearDownAccountDB(adb)
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/user/isadmin.json", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	h := makeIsAdminHandler(e, adb)
+	err = h(c)
+	if err != nil {
+		t.Fatalf("Unexpected error in handler: %s", err.Error())
+	}
+	if rec.Code != http.StatusOK {
+		t.Errorf("Expected rec.Code = OK, but got %s", http.StatusText(rec.Code))
+	}
+	if rec.Body.Len() == 0 {
+		t.Error("Empty body")
+	}
+	var result bool
+	err = json.Unmarshal(rec.Body.Bytes(), &result)
+	if err != nil {
+		t.Fatalf("error unmarshalling body: %s", err.Error())
+	}
+	if result {
+		t.Error("expected handler to return false, but got true")
+	}
+
+}
