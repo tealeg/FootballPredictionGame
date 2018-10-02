@@ -15,7 +15,11 @@ import (
 func makeIsAdminHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		acc, err := GetUserAccount(c, adb)
+		if err.Error() == "http: named cookie not present" {
+			return c.JSON(http.StatusOK, false)
+		}
 		if err != nil {
+
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		return c.JSON(http.StatusOK, acc.IsAdmin)
@@ -103,7 +107,7 @@ func makeCreateAccountHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFun
 		err := cur.Validate(r)
 		if err != nil {
 			for _, rerr := range r.Errors {
-				e.Logger.Error(rerr)
+				e.Logger.Warn(rerr)
 			}
 			return c.JSON(http.StatusBadRequest, r.Errors)
 		}

@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/labstack/echo"
+	"github.com/stretchr/testify/assert"
 	"github.com/tealeg/FootballPredictionGame/competition"
 )
 
@@ -34,19 +36,13 @@ func TestNewLeagueRequestValidation(t *testing.T) {
 		r := newSimpleResponse()
 		err := c.NLR.Validate(r)
 		if eLen > 0 {
-			if err == nil {
-				t.Fatalf("Case %d: Expected validation errors, but no error returned", i)
-			}
+			assert.Error(t, err)
 		} else {
-			if err != nil {
-				t.Fatalf("Cased %d: Unexpected error returned from Validate: %s", i, err.Error())
-			}
+			assert.NoError(t, err)
 		}
 		for j, e := range c.Expectation {
 			er := r.Errors[j]
-			if e != er {
-				t.Errorf("Case %d, Expectation %d: validation error == %q, should be %q", i, j, e, er)
-			}
+			assert.Equalf(t, e, er, "Case %d, Expectation %d: validation error == %q, should be %q", i, j, e, er)
 		}
 	}
 }
@@ -54,23 +50,17 @@ func TestNewLeagueRequestValidation(t *testing.T) {
 // newLeagueRequest.createLeaugue creates a competition.League object and persists it.
 func TestNewLeagueRequestCreateLeague(t *testing.T) {
 	cdb, err := setUpCompetitionDB()
-	if err != nil {
-		t.Fatalf("unexpected error in setting up competition db: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	defer tearDownCompetitionDB(cdb)
 
 	nlr := newLeagueRequest{Name: "English Premier League"}
 	id, err := nlr.createLeague(cdb)
-	if err != nil {
-		t.Fatalf("unexepected error in createLeague: %s", err.Error())
-	}
+	assert.NoError(t, err)
+
 	l, err := cdb.GetLeague(id)
-	if err != nil {
-		t.Fatalf("unexpected error getting league %d: %s", id, err.Error())
-	}
-	if l.Name != nlr.Name {
-		t.Errorf("Expected league name to be %q, but got %q", nlr.Name, l.Name)
-	}
+	assert.NoError(t, err)
+
+	assert.Equal(t, nlr.Name, l.Name)
 }
 
 // GetAllLeagues list all the leagues in the db.
@@ -125,9 +115,7 @@ func TestGetAllLeaguesHandler(t *testing.T) {
 	}
 }
 
-func TestMakeNewLeagueHandler(t *testing.T) {
-	// adb := setupAccountDB()
-	// defer tearDownAccountDB()
+func TestNewLeagueHandler(t *testing.T) {
 	cdb, err := setUpCompetitionDB()
 	if err != nil {
 		t.Fatalf("unexpected error setting up competition db: %s", err.Error())
@@ -147,8 +135,8 @@ func TestMakeNewLeagueHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error in handler: %s", err.Error())
 	}
-	if rec.Code != http.StatusSeeOther {
-		t.Fatalf("expected rec.Code == http.StatusSeeOther, but got %d", rec.Code)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected rec.Code == http.StatusOK, but got %d", rec.Code)
 	}
 
 	leagues, err := cdb.GetAllLeagues()
@@ -162,13 +150,84 @@ func TestMakeNewLeagueHandler(t *testing.T) {
 
 	l := leagues[0]
 
-	expectedLoc := fmt.Sprintf("/league/%d", l.ID)
-	loc := rec.HeaderMap.Get("Location")
-	if loc != expectedLoc {
-		t.Errorf("expected location to be %q, but got %q", expectedLoc, loc)
-	}
-
 	if l.Name != expectedName {
 		t.Errorf("expected name to be %q, but got %q", expectedName, l.Name)
 	}
+}
+
+func TestLeagueHandler(t *testing.T) {
+	cdb, err := setUpCompetitionDB()
+	assert.NoError(t, err)
+	defer tearDownCompetitionDB(cdb)
+
+	l := competition.League{Name: "1. Bundesliga"}
+	lid, err := cdb.CreateLeague(&l)
+	assert.NoError(t, err)
+
+	leagueID := strconv.FormatUint(lid, 10)
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/league/"+leagueID, nil)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/league/:id")
+	c.SetParamNames("id")
+	c.SetParamValues(leagueID)
+
+	h := makeLeagueHandler(e, cdb)
+	err = h(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.NotEmpty(t, rec.Body.Bytes())
+
+	lr := LeagueResponse{}
+	err = json.Unmarshal(rec.Body.Bytes(), &lr)
+	assert.NoError(t, err)
+
+	assert.Equal(t, l.ID, lr.ID)
+	assert.Equal(t, l.Name, lr.Name)
+	assert.Empty(t, lr.Seasons)
+}
+
+func TestLeagueHandlerWithSeasons(t *testing.T) {
+	cdb, err := setUpCompetitionDB()
+	assert.NoError(t, err)
+	defer tearDownCompetitionDB(cdb)
+
+	l := competition.League{Name: "1. Bundesliga"}
+	lid, err := cdb.CreateLeague(&l)
+	assert.NoError(t, err)
+
+	s := competition.NewSeason(lid, 2018, 2019)
+	_, err = cdb.CreateSeason(s)
+	assert.NoError(t, err)
+
+	leagueID := strconv.FormatUint(lid, 10)
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/league/"+leagueID, nil)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/league/:id")
+	c.SetParamNames("id")
+	c.SetParamValues(leagueID)
+
+	h := makeLeagueHandler(e, cdb)
+	err = h(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.NotEmpty(t, rec.Body.Bytes())
+
+	lr := LeagueResponse{}
+	err = json.Unmarshal(rec.Body.Bytes(), &lr)
+	assert.NoError(t, err)
+
+	assert.Equal(t, l.ID, lr.ID)
+	assert.Equal(t, l.Name, lr.Name)
+	assert.Len(t, lr.Seasons, 1)
+
+	sr := lr.Seasons[0]
+	assert.Equal(t, s.ID, sr.ID)
+	assert.Equal(t, s.StartYear, sr.StartYear)
+	assert.Equal(t, s.EndYear, sr.EndYear)
 }

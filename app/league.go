@@ -86,7 +86,8 @@ type LeagueResponse struct {
 
 func makeLeagueHandler(e *echo.Echo, cdb *competition.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+		sid := c.Param("id")
+		id, err := strconv.ParseUint(sid, 10, 64)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
