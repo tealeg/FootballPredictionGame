@@ -10,7 +10,6 @@ import (
 
 const UserCookieName = "FPG2UserName"
 
-//
 func GetAccountCookie(adb *user.AccountDB, acc user.Account) (*http.Cookie, error) {
 	cookie := new(http.Cookie)
 	cookie.Name = UserCookieName
@@ -20,6 +19,27 @@ func GetAccountCookie(adb *user.AccountDB, acc user.Account) (*http.Cookie, erro
 	cookie.Expires = expiration
 
 	err := adb.Update(acc.Name, acc)
+	if err != nil {
+		return nil, err
+	}
+	return cookie, nil
+}
+
+func ExpireAccountCookie(e *echo.Echo, c echo.Context, adb *user.AccountDB) (*http.Cookie, error) {
+	cookie, err := c.Cookie(UserCookieName)
+	if err != nil {
+		e.Logger.Error(err.Error())
+		return nil, err
+	}
+	acc, err := adb.Get(cookie.Value)
+	if err != nil {
+		e.Logger.Error(err.Error())
+		return nil, err
+	}
+	expiration := time.Now().Add(-20 * time.Minute)
+	acc.SessionExpires = expiration
+	cookie.Expires = expiration
+	err = adb.Update(acc.Name, *acc)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +78,7 @@ func SecurePage(e *echo.Echo, adb *user.AccountDB, h echo.HandlerFunc) echo.Hand
 	return func(c echo.Context) error {
 		if !checkAccountCookie(e, adb, c, time.Now()) {
 			e.Logger.Warn("Cookie check failed")
-			return c.Redirect(http.StatusSeeOther, "/login.html?failed=timeout")
+			return echo.NewHTTPError(http.StatusUnauthorized, "Cookie check failed")
 		}
 		e.Logger.Info("Cookie check succeeded")
 		return h(c)

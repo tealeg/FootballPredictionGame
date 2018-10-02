@@ -1,0 +1,7 @@
+To get started, pull the npm dependencies:
+
+    npm install
+
+To build the js code:
+
+    npm run-script build

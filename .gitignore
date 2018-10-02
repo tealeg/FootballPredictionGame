@@ -1,0 +1,5 @@
+static/node_modules
+static/bin
+FootballPredictionGame
+*~
+*.db
