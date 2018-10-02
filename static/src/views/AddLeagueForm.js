@@ -1,5 +1,6 @@
 var m = require("mithril")
 var Leagues = require("../models/Leagues")
+var secure = require("../models/secure")
 
 var AddLeagueForm = {
     errors: [],
