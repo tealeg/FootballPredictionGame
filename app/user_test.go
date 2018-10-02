@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/labstack/echo"
+	"github.com/stretchr/testify/assert"
 	"github.com/tealeg/FootballPredictionGame/user"
 )
 
@@ -30,9 +31,7 @@ func tearDownAccountDB(adb *user.AccountDB) {
 // When no admin user yet exists the AdminUserExistsHandler indicates this.
 func TestAdminUserExistsNoAdmin(t *testing.T) {
 	adb, err := setUpAccountDB()
-	if err != nil {
-		t.Fatalf("Unexpected error in setUpAccountDB: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	defer tearDownAccountDB(adb)
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/user/admin/exists.json", nil)
@@ -40,32 +39,19 @@ func TestAdminUserExistsNoAdmin(t *testing.T) {
 	c := e.NewContext(req, rec)
 	h := makeAdminUserExistsHandler(e, adb)
 	err = h(c)
-	if err != nil {
-		t.Fatalf("Unexpected error in handler: %s", err.Error())
-	}
-	if rec.Code != http.StatusOK {
-		t.Errorf("Expected rec.Code = OK, but got %s", http.StatusText(rec.Code))
-	}
-	if rec.Body.Len() == 0 {
-		t.Error("Empty body")
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.NotZero(t, rec.Body)
 	var result bool
 	err = json.Unmarshal(rec.Body.Bytes(), &result)
-	if err != nil {
-		t.Fatalf("error unmarshalling body: %s", err.Error())
-	}
-	if result {
-		t.Error("expected handler to return false, but got true")
-	}
-
+	assert.NoError(t, err)
+	assert.False(t, result)
 }
 
 // When an admin user exists the AdminUserExistsHandler indicates this.
 func TestAdminUserExistsWithAdmin(t *testing.T) {
 	adb, err := setUpAccountDB()
-	if err != nil {
-		t.Fatalf("Unexpected error in setUpAccountDB: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	defer tearDownAccountDB(adb)
 	acc := user.Account{
 		Forename:       "Geoff",
@@ -75,9 +61,7 @@ func TestAdminUserExistsWithAdmin(t *testing.T) {
 		IsAdmin:        true,
 	}
 	err = adb.Create(acc)
-	if err != nil {
-		t.Fatalf("unexpected error creating account: %s", err.Error())
-	}
+	assert.NoError(t, err)
 
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/user/admin/exists.json", nil)
@@ -85,24 +69,14 @@ func TestAdminUserExistsWithAdmin(t *testing.T) {
 	c := e.NewContext(req, rec)
 	h := makeAdminUserExistsHandler(e, adb)
 	err = h(c)
-	if err != nil {
-		t.Fatalf("Unexpected error in handler: %s", err.Error())
-	}
-	if rec.Code != http.StatusOK {
-		t.Errorf("Expected rec.Code = OK, but got %s", http.StatusText(rec.Code))
-	}
-	if rec.Body.Len() == 0 {
-		t.Error("Empty body")
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.NotZero(t, rec.Body)
+
 	var result bool
 	err = json.Unmarshal(rec.Body.Bytes(), &result)
-	if err != nil {
-		t.Fatalf("error unmarshalling body: %s", err.Error())
-	}
-	if !result {
-		t.Error("expected handler to return true, but got false")
-	}
-
+	assert.NoError(t, err)
+	assert.True(t, result)
 }
 
 // createAccountRequests can be validated and will indicate which any
@@ -179,13 +153,9 @@ func TestCreateAccountRequestValidation(t *testing.T) {
 		eLen := len(exp.Expected)
 		err := exp.CAR.Validate(r)
 		if eLen > 0 {
-			if err == nil {
-				t.Fatalf("Case %d: expected error in validation, but got none", i)
-			}
+			assert.Error(t, err)
 		} else {
-			if err != nil {
-				t.Fatalf("Case %d: unexpected error in validation: %s", i, err.Error())
-			}
+			assert.NoError(t, err)
 		}
 		aLen := len(r.Errors)
 		if aLen != eLen {
@@ -194,9 +164,7 @@ func TestCreateAccountRequestValidation(t *testing.T) {
 
 		for j, msg := range r.Errors {
 			expected := exp.Expected[j]
-			if msg != expected {
-				t.Errorf("Case %d: r.Errors[%d] == %q, but should be %q", i, j, msg, expected)
-			}
+			assert.Equal(t, expected, msg)
 		}
 	}
 }
@@ -204,9 +172,7 @@ func TestCreateAccountRequestValidation(t *testing.T) {
 // Accounts are created and match their requests.
 func TestCreateAccount(t *testing.T) {
 	adb, err := setUpAccountDB()
-	if err != nil {
-		t.Fatalf("unexepected error creating AccountDB: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	defer tearDownAccountDB(adb)
 
 	cur := &createAccountRequest{
@@ -218,26 +184,21 @@ func TestCreateAccount(t *testing.T) {
 	}
 
 	err = cur.createAccount(adb)
-	if err != nil {
-		t.Fatalf("unexpected error creating account: %s", err.Error())
-	}
-
+	assert.NoError(t, err)
 	acc, err := adb.Get("bobit")
-	if err != nil {
-		t.Fatalf("unexpected error getting account from db: %s", err.Error())
-	}
+	assert.NoError(t, err)
 
-	if acc.Forename != cur.Forename || acc.Surname != cur.Surname || acc.Name != cur.Username || acc.HashedPassword != HashPassword(cur.Password) || acc.IsAdmin != cur.IsAdmin {
-		t.Errorf("Account created doesn't match request: %+v != %+v", acc, cur)
-	}
+	assert.Equal(t, acc.Forename, cur.Forename)
+	assert.Equal(t, acc.Surname, cur.Surname)
+	assert.Equal(t, acc.Name, cur.Username)
+	assert.Equal(t, acc.HashedPassword, HashPassword(cur.Password))
+	assert.Equal(t, acc.IsAdmin, cur.IsAdmin)
 }
 
 // The returned createAccountHandler creates accounts
 func TestCreateAccountHandler(t *testing.T) {
 	adb, err := setUpAccountDB()
-	if err != nil {
-		t.Fatalf("unexepected error creating AccountDB: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	defer tearDownAccountDB(adb)
 	e := echo.New()
 	req := httptest.NewRequest(echo.POST, "/user/new.json",
@@ -247,17 +208,14 @@ func TestCreateAccountHandler(t *testing.T) {
 	c := e.NewContext(req, rec)
 	h := makeCreateAccountHandler(e, adb)
 	err = h(c)
-	if err != nil {
-		t.Fatalf("unexpected error in createAccountHandler: %s", err.Error())
-	}
+	assert.NoError(t, err)
+	// TODO - maybe test that we actually create something?
 }
 
 // The returned createAccountHandler returns a list of validation errors
 func TestCreateAccountHandlerWithBadRequest(t *testing.T) {
 	adb, err := setUpAccountDB()
-	if err != nil {
-		t.Fatalf("unexepected error creating AccountDB: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	defer tearDownAccountDB(adb)
 	e := echo.New()
 	req := httptest.NewRequest(echo.POST, "/user/new.json",
@@ -267,20 +225,12 @@ func TestCreateAccountHandlerWithBadRequest(t *testing.T) {
 	c := e.NewContext(req, rec)
 	h := makeCreateAccountHandler(e, adb)
 	err = h(c)
-	if err != nil {
-		t.Fatalf("unexpected error in createAccountHandler: %s", err.Error())
-	}
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("Expected error status == %q, but got %q", http.StatusText(http.StatusBadRequest), http.StatusText(rec.Code))
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	errors := []string{}
 	err = json.Unmarshal(rec.Body.Bytes(), &errors)
-	if err != nil {
-		t.Fatalf("unexpected error unmarshalling response body: %s", err.Error())
-	}
-	if len(errors) != 4 {
-		t.Errorf("Expected 4 errors messages got %d", len(errors))
-	}
+	assert.NoError(t, err)
+	assert.Len(t, errors, 4)
 }
 
 // loginRequest.Validate indicates all validation failures.
@@ -305,24 +255,19 @@ func TestLoginRequestValidate(t *testing.T) {
 	}
 	defer tearDownAccountDB(adb)
 
-	for i, c := range cases {
+	for _, c := range cases {
 		eLen := len(c.Expectation)
 		sr := &simpleResponse{}
 		err := c.LR.Validate(sr)
 		if eLen > 0 {
-			if err == nil {
-				t.Fatalf("Case %d: Expected validation errors, but no error returned", i)
-			}
+			assert.Error(t, err)
 		} else {
-			if err != nil {
-				t.Fatalf("Case %d: Unexpected error returned from Validate: %s", i, err.Error())
-			}
+			assert.NoError(t, err)
 		}
 		for j, e := range c.Expectation {
 			er := sr.Errors[j]
-			if e != er {
-				t.Errorf("Case %d, Expectation %d: validation error == %q should be %q", i, j, e, er)
-			}
+			assert.Equal(t, e, er)
+
 		}
 	}
 }
@@ -330,9 +275,7 @@ func TestLoginRequestValidate(t *testing.T) {
 // With valid credentials, we can be authenticated
 func TestAuthenticationHandlerWithValidCredetentials(t *testing.T) {
 	adb, err := setUpAccountDB()
-	if err != nil {
-		t.Fatalf("Unexpected error in setUpAccountDB: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	defer tearDownAccountDB(adb)
 
 	acc := user.Account{
@@ -343,9 +286,7 @@ func TestAuthenticationHandlerWithValidCredetentials(t *testing.T) {
 		IsAdmin:        false,
 	}
 	err = adb.Create(acc)
-	if err != nil {
-		t.Fatalf("unexpected error creating user.Account: %s", err.Error())
-	}
+	assert.NoError(t, err)
 
 	e := echo.New()
 	req := httptest.NewRequest(echo.PUT, "/authenticate",
@@ -356,35 +297,23 @@ func TestAuthenticationHandlerWithValidCredetentials(t *testing.T) {
 	c := e.NewContext(req, rec)
 	h := makeAuthenticationHandler(e, adb)
 	err = h(c)
-	if err != nil {
-		t.Fatalf("Unexpected error in handler: %s", err.Error())
-	}
-	if rec.Code != http.StatusOK {
-		t.Errorf("Expected rec.Code = OK, but got %s", http.StatusText(rec.Code))
-	}
-	if rec.Body.Len() == 0 {
-		t.Error("Empty body")
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.NotZero(t, rec.Body)
+
 	cookies, ok := rec.HeaderMap["Set-Cookie"]
-	if !ok {
-		t.Fatal("Expected Set-Cookie header, but none was found")
-	}
+	assert.True(t, ok)
+
 	cookie := cookies[0]
 	fields := strings.Split(cookie, ";")
 	parts := strings.Split(fields[0], "=")
-	if parts[0] != "FPG2UserName" {
-		t.Error("Expected FPG2UserName cookie to be set, but it was not")
-	}
-	if parts[1] != "bobit" {
-		t.Errorf("Expected FPG2UserName cookie to = %q , but got %q", "bobit", parts[1])
-	}
+	assert.Equal(t, "FPG2UserName", parts[0])
+	assert.Equal(t, "bobit", parts[1])
 }
 
 func TestIsAdminUserFalse(t *testing.T) {
 	adb, err := setUpAccountDB()
-	if err != nil {
-		t.Fatalf("Unexpected error in setUpAccountDB: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	defer tearDownAccountDB(adb)
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/user/isadmin.json", nil)
@@ -392,22 +321,12 @@ func TestIsAdminUserFalse(t *testing.T) {
 	c := e.NewContext(req, rec)
 	h := makeIsAdminHandler(e, adb)
 	err = h(c)
-	if err != nil {
-		t.Fatalf("Unexpected error in handler: %s", err.Error())
-	}
-	if rec.Code != http.StatusOK {
-		t.Errorf("Expected rec.Code = OK, but got %s", http.StatusText(rec.Code))
-	}
-	if rec.Body.Len() == 0 {
-		t.Error("Empty body")
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.NotZero(t, rec.Body)
+
 	var result bool
 	err = json.Unmarshal(rec.Body.Bytes(), &result)
-	if err != nil {
-		t.Fatalf("error unmarshalling body: %s", err.Error())
-	}
-	if result {
-		t.Error("expected handler to return false, but got true")
-	}
-
+	assert.NoError(t, err)
+	assert.False(t, result)
 }
