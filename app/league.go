@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -73,7 +72,19 @@ func makeGetAllLeaguesHandler(e *echo.Echo, cdb *competition.DB) echo.HandlerFun
 	}
 }
 
-func makeLeagueHandler(e *echo.Echo, adb *user.AccountDB, cdb *competition.DB) echo.HandlerFunc {
+type SeasonResponse struct {
+	ID        string `json:"id"`
+	StartYear uint16 `json:"startyear"`
+	EndYear   uint16 `json:"endyear"`
+}
+
+type LeagueResponse struct {
+	ID      uint64           `json:"id"`
+	Name    string           `json:"name"`
+	Seasons []SeasonResponse `json:"seasons"`
+}
+
+func makeLeagueHandler(e *echo.Echo, cdb *competition.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 		if err != nil {
@@ -87,47 +98,25 @@ func makeLeagueHandler(e *echo.Echo, adb *user.AccountDB, cdb *competition.DB) e
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
-		sSection := "<ul>"
+		lr := LeagueResponse{
+			ID:   l.ID,
+			Name: l.Name,
+		}
 		for _, s := range seasons {
-			sSection += fmt.Sprintf("<li><a href=\"/season/%s\">%d/%d</a></li>", s.ID, s.StartYear, s.EndYear)
-		}
-		sSection += "</ul>"
-
-		createForm := ""
-		user, err := GetUserAccount(c, adb)
-		if err == nil {
-			if user.IsAdmin {
-				createForm += fmt.Sprintf(`
-<form action="/season/new" method="POST">
-  <fieldset>
-    <input type="hidden" name="leagueID" value="%d" />
-    Season Start Year: <input type="text" name="startYear" placeholder="YYYY"/><br />
-    Season End Year: <input type="text" name="endYear" placeholder="YYYY"/>
-    <br />
-    <input type="submit" value="Create Season"/>
-  </fieldset>
-</form>`, l.ID)
+			sr := SeasonResponse{
+				ID:        s.ID,
+				StartYear: s.StartYear,
+				EndYear:   s.EndYear,
 			}
+			lr.Seasons = append(lr.Seasons, sr)
 		}
 
-		return c.HTML(http.StatusOK, fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-  </head>
-  <body>
-    <h1>%s</h1>
-    %s
-    %s
-  </body>
-</html>
-`, l.Name, sSection, createForm))
+		return c.JSON(http.StatusOK, lr)
 	}
 }
 
 func setupLeagueHandlers(e *echo.Echo, adb *user.AccountDB, cdb *competition.DB) {
 	e.GET("/leagues.json", SecurePage(e, adb, makeGetAllLeaguesHandler(e, cdb)))
 	e.POST("/leagues/new.json", SecurePage(e, adb, makeNewLeagueHandler(e, cdb)))
-	e.GET("/league/:id", SecurePage(e, adb, makeLeagueHandler(e, adb, cdb)))
+	e.GET("/league/:id", SecurePage(e, adb, makeLeagueHandler(e, cdb)))
 }
