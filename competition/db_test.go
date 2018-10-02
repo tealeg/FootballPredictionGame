@@ -3,13 +3,13 @@ package competition
 import (
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func setUpDB(t *testing.T) *DB {
 	db, err := NewDB("testDB")
-	if err != nil {
-		t.Fatalf("Unexpected error creating DB: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	return db
 }
 
