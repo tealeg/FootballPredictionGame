@@ -28,17 +28,17 @@ func makeIsAdminHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 // require authentication.
 func makeAdminUserExistsHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		e.Logger.Error("Check if admin user exists")
+		e.Logger.Debugf("Check if admin user exists")
 		exists, err := adb.AdminUserExists()
 		if err != nil {
 			e.Logger.Error(err.Error())
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		if exists {
-			e.Logger.Error("Admin user exists")
+			e.Logger.Debugf("Admin user exists")
 			return c.JSON(http.StatusOK, true)
 		}
-		e.Logger.Error("Admin user does not exist")
+		e.Logger.Debugf("Admin user does not exist")
 		return c.JSON(http.StatusOK, false)
 	}
 }
@@ -145,15 +145,14 @@ func (lr *loginRequest) Validate(r *simpleResponse) error {
 // with the app/cookie.SecurePage middleware will gate their usage by
 // checking for the presence and actuality of this cookie.
 func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
-	e.Logger.Error("Creating AuthenticationHandler")
+	e.Logger.Debugf("Creating AuthenticationHandler")
 	return func(c echo.Context) error {
-		e.Logger.Error("Authenticating")
+		e.Logger.Debugf("Authenticating")
 		lr := new(loginRequest)
 		if err := c.Bind(lr); err != nil {
 			e.Logger.Error(err.Error())
 			return err
 		}
-		e.Logger.Error(fmt.Sprintf("%+v", lr))
 		r := newSimpleResponse()
 		err := lr.Validate(r)
 		if err != nil {
@@ -168,7 +167,7 @@ func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFu
 
 		p := HashPassword(lr.Password)
 		if p != account.HashedPassword {
-			e.Logger.Error("bad password")
+			e.Logger.Infof("bad password")
 			r.AddError(errors.New("Bad credentials - user name and password not valid for this service"))
 			return c.JSON(http.StatusUnauthorized, *r)
 		}
@@ -177,7 +176,7 @@ func makeAuthenticationHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFu
 			e.Logger.Error("Couldn't get cookie: " + err.Error())
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
-		e.Logger.Error("Set Cookie")
+		e.Logger.Debugf("Set Cookie")
 		c.SetCookie(cookie)
 
 		return c.JSON(http.StatusOK, *r)
@@ -194,7 +193,7 @@ func makeLogOutHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
-		e.Logger.Error("expire cookie")
+		e.Logger.Debugf("expire cookie")
 		c.SetCookie(cookie)
 		return c.JSON(http.StatusOK, nil)
 	}
