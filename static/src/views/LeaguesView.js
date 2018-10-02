@@ -1,15 +1,17 @@
+
 var m = require("mithril")
 
 var Leagues = require("../models/Leagues")
 var secure = require("../models/secure")
-var ErrorBar = require("../views/ErrorBar")
+var ErrorBar = require("./ErrorBar")
+var Outline = require("./Outline")
 
 function renderLeagues(leagueList) {
     return m("ul", leagueList.map(
 	function(league) {
 	    return m("li", [
 		m("a", {
-		    href: "/league" + league.ID,
+		    href: "/league/" + league.ID,
 		    oncreate: m.route.link
 		}, league.Name)
 	    ])
@@ -35,11 +37,13 @@ LeaguesView = {
     },
 
     view: function() {
-	return m(".leagues", [
-	    m(".container", [
-		m(ErrorBar),
-		renderLeagues(Leagues.list),
-		renderAddLeagueButton(),
+	return m(Outline, [
+	    m(".col-12", [
+		m(".container", [
+		    m(ErrorBar),
+		    renderLeagues(Leagues.list),
+		    renderAddLeagueButton(),
+		])
 	    ])
 	])
     }
