@@ -7,16 +7,19 @@ var ErrorBar = require("./ErrorBar")
 var Outline = require("./Outline")
 
 function renderLeagues(leagueList) {
-    return m("ul", leagueList.map(
-	function(league) {
-	    return m("li", [
-		m("a", {
-		    href: "/league/" + league.ID,
-		    oncreate: m.route.link
-		}, league.Name)
-	    ])
-	}
-    ))
+    if (leagueList) {
+	return m("ul", leagueList.map(
+		function(league) {
+		    return m("li", [
+			m("a", {
+			    href: "/league/" + league.ID,
+			    oncreate: m.route.link
+			}, league.Name)
+		    ])
+		}
+	    ))
+    }
+    return null
 }
 
 function renderAddLeagueButton() {

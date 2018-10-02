@@ -5,17 +5,29 @@ var League = require("../models/League")
 var secure = require("../models/secure")
 
 function renderSeasons(seasonList) {
-    return m("ul", seasonList.map(
-	function(season) {
-	    return m("li", [
-		m("a", {
-		    href: "/league/" + LeagueView.leauge.ID + "/season/" + season.ID,
-		    oncreate: m.route.link,
-		})
-	    ])
-	}
-    ));
+    if (seasonList) {
+	return m("ul", seasonList.map(
+	    function(season) {
+		return m("li", [
+		    m("a", {
+			href: "/league/" + LeagueView.leauge.ID + "/season/" + season.ID,
+			oncreate: m.route.link,
+		    })
+		])
+	    }
+	));
+    }
+    return null
 }
+
+function renderAddSeasonButton(lid) {
+    return m("a", {
+	href: "/league/" + lid + "/seasons/new" ,
+	oncreate: m.route.link,
+    }, "Add Season")
+
+}
+
 
 LeagueView = {
     oninit: function(vnode){
@@ -32,6 +44,7 @@ LeagueView = {
 		    m(ErrorBar),
 		    m("h3", League.current.name),
 		    renderSeasons(League.current.seasons),
+		    renderAddSeasonButton(League.current.id),
 		])
 	    ])
 	])
