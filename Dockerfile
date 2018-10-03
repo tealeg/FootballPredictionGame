@@ -1,11 +1,18 @@
-# Build stage
-FROM golang:alpine AS build-env
-ADD . /go/src/github.com/tealeg/FootballPredictionGame
-RUN go version
-RUN cd /go/src/github.com/tealeg/FootballPredictionGame && go build -o fpg
+	# Build stage
+FROM golang AS build
+ADD . /src
+RUN apt-get update -yq \
+    && apt-get install curl gnupg -yq \
+    && curl -sL https://deb.nodesource.com/setup_8.x | bash \
+    && apt-get install nodejs -yq
+RUN cd /src && CGO_ENABLED=0 go build -o fpg
+RUN cd /src/static && npm install && npm run-script build
+RUN ls /src
 
 # Final stage
 FROM alpine
 WORKDIR /app
-COPY --from=build-env /go/src/github.com/tealeg/FootballPredictionGame/fpg /app/
+COPY --from=build /src/fpg /app/
+COPY --from=build /src/static /app/static
 ENTRYPOINT ./fpg
+EXPOSE 9090
