@@ -11,7 +11,7 @@ var AddLeagueForm = {
 			 e.preventDefault()
 			 Leagues.save().then(
 			     function(response) {
-				 window.location.href = "/league/" + response.ObjID
+				 window.location.href = "/#!/league/" + response.ObjID
 			     }
 			 ).catch(secure).catch(
 			     function(err) {
