@@ -7,7 +7,6 @@ RUN apt-get update -yq \
     && apt-get install nodejs -yq
 RUN cd /src && CGO_ENABLED=0 go build -o fpg
 RUN cd /src/static && npm install && npm run-script build
-RUN ls /src
 
 # Final stage
 FROM alpine
