@@ -1,4 +1,4 @@
-	# Build stage
+# Build stage
 FROM golang AS build
 ADD . /src
 RUN apt-get update -yq \
