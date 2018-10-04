@@ -12,7 +12,7 @@ import (
 
 // newLeagueRequest is a holder for data passed into new League requests.
 type newLeagueRequest struct {
-	Name string
+	Name string `json:"name"`
 }
 
 // Validate checks the members of a newLeagueRequest for validity and
@@ -57,7 +57,7 @@ func makeNewLeagueHandler(e *echo.Echo, cdb *competition.DB) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		r.ObjID = strconv.FormatUint(lid, 10)
-		e.Logger.Info("User created: %+v", r)
+		e.Logger.Info("League created: %+v", r)
 		return c.JSON(http.StatusOK, r)
 	}
 }

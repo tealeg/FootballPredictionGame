@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -66,19 +65,16 @@ func TestNewLeagueRequestCreateLeague(t *testing.T) {
 // GetAllLeagues list all the leagues in the db.
 func TestGetAllLeaguesHandler(t *testing.T) {
 	cdb, err := setUpCompetitionDB()
-	if err != nil {
-		t.Fatalf("unexpected error setting up competition db: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	defer tearDownCompetitionDB(cdb)
+
 	var expected []competition.League
 	for i := 0; i < 5; i++ {
 		l := &competition.League{
 			Name: fmt.Sprintf("League %d", i+1),
 		}
 		_, err := cdb.CreateLeague(l)
-		if err != nil {
-			t.Fatalf("Error creating league %d: %s", i+1, err)
-		}
+		assert.NoError(t, err)
 		expected = append(expected, *l)
 	}
 	e := echo.New()
@@ -87,72 +83,48 @@ func TestGetAllLeaguesHandler(t *testing.T) {
 	c := e.NewContext(req, rec)
 	h := makeGetAllLeaguesHandler(e, cdb)
 	err = h(c)
-	if err != nil {
-		t.Fatalf("Unexepected error in handler: %s", err)
-	}
-	if rec.Code != http.StatusOK {
-		t.Errorf("Expected rec.Code = OK, but got %s", http.StatusText(rec.Code))
-	}
-	if rec.Body.Len() == 0 {
-		t.Error("Empty body")
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.NotEmpty(t, rec.Body)
+
 	var result []competition.League
 	err = json.Unmarshal(rec.Body.Bytes(), &result)
-	if err != nil {
-		t.Fatalf("error unmarshalling body: %s", err.Error())
-	}
-	if len(result) != 5 {
-		t.Errorf("expected 5 leagues, but got %d", len(result))
-	}
+	assert.NoError(t, err)
+	assert.Len(t, result, 5)
+
 	for i, l := range result {
 		exp := expected[i]
-		if exp.ID != l.ID {
-			t.Errorf("Result[%d]: expected ID == %d, but got %d", i, exp.ID, l.ID)
-		}
-		if exp.Name != l.Name {
-			t.Errorf("Result[%d]: expected Name == %q, but got %q", i, exp.Name, l.Name)
-		}
+		assert.Equal(t, exp.ID, l.ID)
+		assert.Equal(t, exp.Name, l.Name)
 	}
 }
 
 func TestNewLeagueHandler(t *testing.T) {
 	cdb, err := setUpCompetitionDB()
-	if err != nil {
-		t.Fatalf("unexpected error setting up competition db: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	defer tearDownCompetitionDB(cdb)
+	
 	e := echo.New()
-	form := make(url.Values)
 	expectedName := "English Premier League"
-	form.Set("name", expectedName)
-	req := httptest.NewRequest(echo.POST, "/league/new", strings.NewReader(form.Encode()))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+	encoded := fmt.Sprintf(`{"name": %q}`, expectedName)
+
+	req := httptest.NewRequest(echo.POST, "/leagues/new.json", strings.NewReader(encoded))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
 	h := makeNewLeagueHandler(e, cdb)
 	err = h(c)
-	if err != nil {
-		t.Fatalf("unexpected error in handler: %s", err.Error())
-	}
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected rec.Code == http.StatusOK, but got %d", rec.Code)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
 
 	leagues, err := cdb.GetAllLeagues()
-	if err != nil {
-		t.Fatalf("unexpected error in GetAllLeauges: %s", err.Error())
-	}
-	lCount := len(leagues)
-	if lCount != 1 {
-		t.Fatalf("expected 1 league to exist, but found %d", lCount)
-	}
+	assert.NoError(t, err)
+
+	assert.Len(t, leagues, 1)
 
 	l := leagues[0]
-
-	if l.Name != expectedName {
-		t.Errorf("expected name to be %q, but got %q", expectedName, l.Name)
-	}
+	assert.Equal(t, expectedName, l.Name)
 }
 
 func TestLeagueHandler(t *testing.T) {
