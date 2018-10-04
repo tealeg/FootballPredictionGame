@@ -213,6 +213,7 @@ func HashPassword(password string) string {
 func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
 	e.PUT("/authenticate", makeAuthenticationHandler(e, adb))
 	e.GET("/user/admin/exists.json", makeAdminUserExistsHandler(e, adb))
+	e.GET("/user/isadmin.json", SecurePage(e, adb, makeIsAdminHandler(e, adb)))
 	e.POST("/user/new.json", makeCreateAccountHandler(e, adb))
-	e.GET("/logout", makeLogOutHandler(e, adb))
+	e.GET("/logout", SecurePage(e, adb, makeLogOutHandler(e, adb)))
 }
