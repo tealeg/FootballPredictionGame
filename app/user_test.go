@@ -209,7 +209,19 @@ func TestCreateAccountHandler(t *testing.T) {
 	h := makeCreateAccountHandler(e, adb)
 	err = h(c)
 	assert.NoError(t, err)
-	// TODO - maybe test that we actually create something?
+
+	exists, err := adb.AdminUserExists()
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	acc, err := adb.Get("bobit")
+	assert.NoError(t, err)
+	assert.NotNil(t, acc)
+	assert.Equal(t, "bob", acc.Forename)
+	assert.Equal(t, "bobfrey", acc.Surname)
+	assert.Equal(t, "bobit", acc.Name)
+	assert.Equal(t, HashPassword("lorena"), acc.HashedPassword)
+	assert.True(t, acc.IsAdmin)
 }
 
 // The returned createAccountHandler returns a list of validation errors
