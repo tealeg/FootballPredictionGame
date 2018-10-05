@@ -16,6 +16,12 @@ var User = {
 	    data: User.current,
 	})
     },
+    isAdmin: function() {
+	return m.request({
+	    method: "GET",
+	    url: "/user/isadmin.json",
+	})
+    },
     logOut: function() {
 	return m.request({
 	    method: "GET",

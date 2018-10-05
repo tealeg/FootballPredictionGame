@@ -15,12 +15,12 @@ import (
 func makeIsAdminHandler(e *echo.Echo, adb *user.AccountDB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		acc, err := GetUserAccount(c, adb)
-		if err.Error() == "http: named cookie not present" {
-			return c.JSON(http.StatusOK, false)
-		}
 		if err != nil {
-
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			if err.Error() == "http: named cookie not present" {
+				return c.JSON(http.StatusOK, false)
+			} else {
+				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			}
 		}
 		return c.JSON(http.StatusOK, acc.IsAdmin)
 	}
@@ -213,6 +213,7 @@ func HashPassword(password string) string {
 func setupUserHandlers(e *echo.Echo, adb *user.AccountDB) {
 	e.PUT("/authenticate", makeAuthenticationHandler(e, adb))
 	e.GET("/user/admin/exists.json", makeAdminUserExistsHandler(e, adb))
+	e.GET("/user/isadmin.json", SecurePage(e, adb, makeIsAdminHandler(e, adb)))
 	e.POST("/user/new.json", makeCreateAccountHandler(e, adb))
-	e.GET("/logout", makeLogOutHandler(e, adb))
+	e.GET("/logout", SecurePage(e, adb, makeLogOutHandler(e, adb)))
 }

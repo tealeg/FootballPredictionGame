@@ -9,6 +9,7 @@ require (
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/nsf/gocode v0.0.0-20180902125341-7b1d4e18cdc5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rogpeppe/godef v1.0.0 // indirect
 	github.com/stretchr/testify v1.2.2
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v0.0.0-20170224212429-dcecefd839c4 // indirect
